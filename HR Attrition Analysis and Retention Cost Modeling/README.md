@@ -251,6 +251,8 @@ pytest>=7.2.0
 
 ## Author
 
+**OGHENEOCHUKO EMMANUEL OGIDIAGBA**
+
 Built as a flagship portfolio piece demonstrating Senior Data Analyst capabilities in:
 - User behavior and churn analysis
 - Friction point identification

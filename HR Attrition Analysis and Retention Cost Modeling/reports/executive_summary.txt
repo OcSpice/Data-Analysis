@@ -75,5 +75,8 @@ All sensitive employee identifiers (EmployeeNumber) have been anonymized
 using SHA-256 hashing to ensure PII compliance for public sharing.
 
 ================================================================================
+Prepared by: OGHENEOCHUKO EMMANUEL OGIDIAGBA
+Senior Data Analyst Portfolio Project
+================================================================================
 Report Generated Successfully
 ================================================================================
