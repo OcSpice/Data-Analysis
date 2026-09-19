@@ -7,7 +7,7 @@ and anomaly detection system. It orchestrates data loading, validation,
 PII masking, anomaly detection, and reporting.
 
 Portfolio Category: Data Analysis (enhanced with Machine Learning techniques)
-Author: Senior Data Analyst
+Author: Oghenochuko Emmanuel Ogidiagba
 """
 
 import os

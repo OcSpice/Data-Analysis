@@ -2,7 +2,7 @@
 
 **Portfolio Category:** Data Analysis (enhanced with Machine Learning techniques)
 
-**Author:** Senior Data Analyst
+**Author:** Oghenochuko Emmanuel Ogidiagba
 
 ---
 

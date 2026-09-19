@@ -25,7 +25,7 @@ from .anomaly_detector import AnomalyDetector
 from .report_generator import ReportGenerator
 
 __version__ = "1.0.0"
-__author__ = "Senior Data Analyst"
+__author__ = "Oghenochuko Emmanuel Ogidiagba"
 __all__ = [
     "DataLoader",
     "DataQualityEngine",
