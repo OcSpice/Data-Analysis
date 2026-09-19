@@ -119,3 +119,6 @@ IMPLEMENTATION NOTES:
 4. Track metrics monthly and adjust tactics based on leading indicators.
 
 ================================================================================
+Prepared by: OGHENEOCHUKO EMMANUEL OGIDIAGBA
+Senior Data Analyst Portfolio Project
+================================================================================

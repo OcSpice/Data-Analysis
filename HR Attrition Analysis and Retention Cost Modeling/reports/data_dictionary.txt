@@ -71,3 +71,6 @@ PII Masking Applied:
 - EmployeeNumber: SHA-256 hashed with salt for anonymization
 
 ================================================================================
+Prepared by: OGHENEOCHUKO EMMANUEL OGIDIAGBA
+Senior Data Analyst Portfolio Project
+================================================================================

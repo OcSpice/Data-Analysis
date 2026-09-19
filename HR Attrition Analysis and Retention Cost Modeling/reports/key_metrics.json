@@ -1,6 +1,7 @@
 {
   "portfolio_category": "Data Analysis",
   "project_name": "HR Attrition Analysis and Retention Cost Modeling",
+  "author": "OGHENEOCHUKO EMMANUEL OGIDIAGBA",
   "dataset_size": 1470,
   "key_findings": {
     "overall_attrition_rate": 0.16122448979591836,
