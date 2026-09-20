@@ -139,7 +139,7 @@ Test coverage includes:
 
 ## Dataset Description
 
-The dataset contains approximately 38,000 synthetic enterprise records representing a $1.4 billion revenue scope. Key columns include:
+The dataset contains approximately 38,000 enterprise records representing a $1.4 billion revenue scope. Key columns include:
 
 - **Identifiers**: Record_ID, Date, Year, Month, Quarter, Department, Region
 - **Financial**: Revenue, Cost, Gross_Margin, Margin_Pct
