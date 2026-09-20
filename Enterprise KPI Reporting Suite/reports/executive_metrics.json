@@ -1,0 +1,70 @@
+{
+  "author": "OGHENEOCHUKO EMMANUEL OGIDIAGBA",
+  "generated_at": "2026-09-20T15:48:43.516541",
+  "data_scope": {
+    "total_records": 38000,
+    "total_revenue": 1402428009.31,
+    "total_cost": 888601361.25,
+    "total_margin": 513826648.06,
+    "overall_margin_pct": 36.64,
+    "revenue_scope_label": "$1.4 billion revenue scope"
+  },
+  "performance": {
+    "records_below_target": 15737,
+    "below_target_percentage": 41.41,
+    "records_above_target": 22263
+  },
+  "department_health_scores": {
+    "Finance": 99.89,
+    "Operations": 84.36,
+    "Sales": 79.85,
+    "HR": 95.15
+  },
+  "underperforming_areas": [
+    {
+      "type": "Cost_Center",
+      "identifier": "CC-500",
+      "below_target_rate": 42.22,
+      "revenue": 281753704.87,
+      "cost": 179192340.01,
+      "revenue_gap": 102561364.86000001,
+      "margin_pct": 36.47146437994723
+    },
+    {
+      "type": "Region",
+      "identifier": "North America",
+      "below_target_rate": 42.09,
+      "revenue": 394406337.72,
+      "cost": 249755346.36,
+      "revenue_gap": 144650991.36,
+      "margin_pct": 36.720576438765036
+    },
+    {
+      "type": "Cost_Center",
+      "identifier": "CC-400",
+      "below_target_rate": 41.86,
+      "revenue": 281514295.14,
+      "cost": 177531429.66,
+      "revenue_gap": 103982865.47999999,
+      "margin_pct": 36.9048176911939
+    }
+  ],
+  "departments_analyzed": [
+    "Finance",
+    "Operations",
+    "Sales",
+    "IT",
+    "Marketing",
+    "Legal",
+    "HR",
+    "Customer Success"
+  ],
+  "regions_analyzed": [
+    "Asia Pacific",
+    "Europe",
+    "Latin America",
+    "North America",
+    "MEA"
+  ],
+  "report_generated_at": "2026-09-20T15:48:44.174473"
+}
