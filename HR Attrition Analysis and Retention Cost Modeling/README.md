@@ -123,6 +123,71 @@ Scenario Effectiveness
 
 These are **hypothetical sensitivity scenarios**, not observed or guaranteed savings.
 
+
+
+## Validated Results
+
+The following results were produced by the project pipeline in GitHub Actions after the preprocessing and duplicate-feature fixes. The validation run completed successfully with **21 tests passed**.
+
+### Workforce findings
+
+| Metric | Validated result |
+|---|---:|
+| Employee records | 1,470 |
+| Overall observed attrition | 16.1% |
+| Overtime attrition | 30.5% |
+| Non-overtime attrition | 10.4% |
+| Overtime / non-overtime observed attrition-rate ratio | 2.93× |
+
+The 2.93× figure is a comparison of observed rates in this benchmark dataset; it should not be interpreted as a causal effect of overtime.
+
+### Held-out model performance
+
+| Model | ROC-AUC | PR-AUC | Recall | F1 |
+|---|---:|---:|---:|---:|
+| Logistic Regression | 0.783 | 0.539 | 0.660 | 0.453 |
+| Random Forest | 0.767 | 0.425 | 0.362 | 0.382 |
+
+On this benchmark and current configuration, **Logistic Regression performs better than Random Forest across the listed ROC-AUC, PR-AUC, recall and F1 measures**. The project therefore does not present Random Forest as the superior predictive model simply because it is more complex.
+
+### Random Forest — top SHAP features
+
+| Rank | Feature | Mean absolute SHAP value |
+|---|---|---:|
+| 1 | OverTime | 0.08178 |
+| 2 | JobRole | 0.03478 |
+| 3 | MaritalStatus | 0.03189 |
+| 4 | Age | 0.03017 |
+| 5 | Department | 0.02571 |
+
+These values describe model contribution on the held-out observations. They do not establish that any listed feature causes employee attrition.
+
+### Business impact
+
+The validated observed replacement-cost exposure for employees recorded as `Attrition = Yes` is **$20,421,738**, using the configured **1.5× annual salary** analytical assumption.
+
+Illustrative sensitivity scenarios:
+
+| Hypothetical retention effectiveness | Avoided-cost estimate | Remaining exposure estimate |
+|---:|---:|---:|
+| 10% | $2,042,174 | $18,379,565 |
+| 20% | $4,084,348 | $16,337,390 |
+| 30% | $6,126,521 | $14,295,217 |
+| 40% | $8,168,695 | $12,253,043 |
+| 50% | $10,210,869 | $10,210,869 |
+
+These are **hypothetical sensitivity scenarios**, not observed or guaranteed savings.
+
+## Validation and Reproducibility
+
+GitHub Actions runs the project's test suite and full pipeline on the rebuild branch.
+
+The validated run confirmed:
+
+- **21 automated tests passed**
+- the full `python pipeline.py` execution completed successfully
+- model metrics and financial outputs are generated from current pipeline results rather than manually calibrated report values
+
 ## Key Business Questions
 
 The analysis is designed to answer questions such as:
