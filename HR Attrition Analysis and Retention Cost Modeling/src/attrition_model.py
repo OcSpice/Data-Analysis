@@ -46,9 +46,10 @@ class AttritionModel:
         "JobRole", "MaritalStatus", "OverTime",
     ]
 
+    # IsOverTime is intentionally excluded because it duplicates OverTime.
+    # Keeping both would duplicate the same signal and split model explanation importance.
     ENGINEERED_FEATURES = [
-        "IsOverTime", "PromotionStagnation", "LowSatisfactionCount",
-        "PoorWorkLifeBalance",
+        "PromotionStagnation", "LowSatisfactionCount", "PoorWorkLifeBalance",
     ]
 
     def __init__(self, random_state: int = 42):
