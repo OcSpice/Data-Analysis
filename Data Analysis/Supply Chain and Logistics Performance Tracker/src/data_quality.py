@@ -12,7 +12,9 @@ class DataQualityValidator:
   for c in ['Planned_Days','Actual_Days','Delay_Days','Cargo_Value','Freight_Cost','SLA_Penalty']:
    if out[c].isna().any(): out[c]=out[c].fillna(out[c].median())
   for c in ['Carrier','Cargo_Type','Mode','Client_Type','Incoterm','Warehouse','Analyst']:
-   if out[c].isna().any(): out[c]=out[c].fillna(out[c].mode().iat[0])
+   if out[c].isna().any():
+    mode=out[c].mode()
+    out[c]=out[c].fillna(mode.iat[0] if not mode.empty else 'Unknown')
   for c in ['On_Time','Customs_Hold','Delivered']:
    if out[c].isna().any(): out[c]=out[c].fillna(0)
   invalid=out.Actual_Days<out.Planned_Days-self.tolerance_days
@@ -34,7 +36,11 @@ class DataAnonymizer:
   return hashlib.sha256(f'{self.salt}_{value}'.encode()).hexdigest()[:12]
  def create_anonymized_dataset(self,df):
   out=df.copy()
-  if 'Analyst' in out: out['Analyst']=out.Analyst.map({x:f'Analyst_{i+1}' for i,x in enumerate(sorted(out.Analyst.dropna().unique()))})
+  if 'Analyst' in out:
+   out['Analyst']=out.Analyst.map({x:f'Analyst_{i+1}' for i,x in enumerate(sorted(out.Analyst.dropna().unique()))})
   if 'Shipment_ID' in out: out['Shipment_ID']=out.Shipment_ID.map(self.hash_value)
+  if 'Client_Type' in out:
+   known={'Enterprise','SMB','Government','Startup'}
+   out['Client_Type']=out['Client_Type'].where(out['Client_Type'].isin(known),'Other')
   return out
 def load_and_validate_data(file_path): return DataQualityValidator().validate_and_clean(pd.read_csv(file_path))
