@@ -3,7 +3,7 @@ import os
 import sys
 sys.path.insert(0,os.path.join(os.path.dirname(__file__),'..','src'))
 from generate_data import generate_dataset
-from data_quality import DataQualityValidator
+from data_quality import DataQualityValidator, DataAnonymizer
 from analytics_engine import LogisticsAnalyticsEngine
 from report_generator import ReportGenerator
 from visualization import VisualizationEngine
@@ -37,3 +37,22 @@ def test_reporting_and_visualization_interfaces(tmp_path):
     assert 'scenario_35pct_usd' in report.metrics()
     viz=VisualizationEngine(df,str(tmp_path/'viz'))
     assert set(viz.create_all_visualizations())=={'monthly_delay_rate','carrier_on_time','cold_chain_on_time'}
+
+
+def test_non_delayed_shipments_have_zero_delay():
+    df=generate_dataset(5000)
+    assert (df.loc[df.On_Time==1,'Delay_Days']==0).all()
+    assert (df.loc[df.On_Time==1,'Actual_Days']==df.loc[df.On_Time==1,'Planned_Days']).all()
+
+def test_anonymizer_generalizes_unrecognized_client_values():
+    df=generate_dataset(10)
+    df.loc[0,'Client_Type']='Acme Confidential Client'
+    anonymized=DataAnonymizer().create_anonymized_dataset(df)
+    assert anonymized.loc[0,'Client_Type']=='Other'
+
+def test_validator_handles_all_missing_categorical_column():
+    df=generate_dataset(20)
+    df['Analyst']=None
+    clean,report=DataQualityValidator().validate_and_clean(df)
+    assert (clean['Analyst']=='Unknown').all()
+    assert report['cleaned_rows']==20

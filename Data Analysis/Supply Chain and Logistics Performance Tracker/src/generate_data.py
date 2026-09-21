@@ -18,7 +18,7 @@ def generate_dataset(n=N_RECORDS,seed=SEED):
   planned=max(1,plan[mode]+int(rng.integers(-1,3))-(1 if cargo=='Perishables' else 0)); p=min(.65,max(.01,delay_p[mode]+cargo_p[cargo]))
   if origin in ('Shanghai','Dubai') and dest in ('New York','London'): p=min(.65,p+.04)
   delayed=rng.random()<p; sev=rng.choice(['low','medium','high'],p=[.55,.32,.13] if cargo not in ('Perishables','Pharma') else [.40,.40,.20])
-  extra=int(rng.integers(1,4) if sev=='low' else rng.integers(4,11) if sev=='medium' else rng.integers(11,31)) if delayed else int(rng.integers(0,2))
+  extra=int(rng.integers(1,4) if sev=='low' else rng.integers(4,11) if sev=='medium' else rng.integers(11,31)) if delayed else 0
   actual=planned+extra; delay=max(0,actual-planned); value=float(np.clip(rng.lognormal(8.7,1.25),500,180000)); freight=max(100,value*cost[mode]*float(rng.uniform(.75,1.35))+float(rng.uniform(100,1000))); penalty=freight*penalty_rate[cargo]*min(delay,30)/30 if delay else 0
   customs=int(rng.random() < .07+(.07 if cargo in ('Pharma','Chemicals') else 0)+(.04 if origin in ('Shanghai','Dubai') and dest in ('New York','London') else 0)); delivered=int(rng.random()>=.03)
   rows.append({'Shipment_ID':f'SHP-{i+1:06d}','Date':date.strftime('%Y-%m-%d'),'Year':date.year,'Month':date.month,'Quarter':(date.month-1)//3+1,'Carrier':carrier,'Origin':origin,'Destination':dest,'Cargo_Type':cargo,'Mode':mode,'Client_Type':random.choice(CLIENT_TYPES),'Incoterm':random.choice(INCOTERMS),'Warehouse':random.choice(WAREHOUSES),'Analyst':random.choice(ANALYSTS),'Planned_Days':planned,'Actual_Days':actual,'Delay_Days':delay,'On_Time':int(delay==0),'Cargo_Value':round(value,2),'Freight_Cost':round(freight,2),'SLA_Penalty':round(penalty,2),'Customs_Hold':customs,'Delivered':delivered})
