@@ -112,6 +112,10 @@ Data quality is separated into four dimensions:
    - Margin % agrees with Gross Margin / Revenue
    - LTV/CAC agrees with LTV / CAC
 
+Validity checks also cover business-rule violations such as deals exceeding
+leads, SQL counts exceeding MQL counts, invalid SLA flags, out-of-range
+percentages, and mismatches between Date and its Year/Month/Quarter fields.
+
 An equal-weight overall quality score is shown only as a transparent summary
 of these four dimensions.
 
