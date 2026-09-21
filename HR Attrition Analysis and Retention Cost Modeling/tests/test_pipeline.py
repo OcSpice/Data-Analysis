@@ -316,6 +316,23 @@ class TestAttritionModel:
         assert model.shap_values.ndim == 2
         assert len(results["top_features"]) > 0
 
+    def test_shap_subset_index_is_handled_safely(self):
+        pytest.importorskip("shap")
+        from attrition_model import AttritionModel
+
+        data_path = Path(__file__).parent.parent / "HR-Employee-Attrition-Dataset.csv"
+        df = DataLoader(str(data_path)).load()
+        df = FeatureEngineer().create_features(df)
+
+        model = AttritionModel(random_state=42)
+        model.train(df)
+        model.calculate_shap_values(max_samples=5)
+
+        assert model.shap_test_indices.tolist() == [0, 1, 2, 3, 4]
+        model.explain_prediction(4)
+        with pytest.raises(IndexError, match="not included in the calculated SHAP subset"):
+            model.explain_prediction(5)
+
 
 class TestBusinessImpact:
     """Tests for scenario-based financial modeling."""
