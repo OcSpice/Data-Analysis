@@ -6,8 +6,9 @@ class DataQualityValidator:
  def validate_and_clean(self,df):
   missing=[c for c in self.REQUIRED_COLUMNS if c not in df.columns]
   if missing: raise ValueError(f'Schema validation failed. Missing columns: {missing}')
-  out=df.copy(); report={'original_rows':len(out),'validation_passed':True,'issues':{'missing_values':out.isna().sum().loc[lambda x:x>0].to_dict()}}
-  errors=[]
+  out=df.copy(); report={'original_rows':len(out),'validation_passed':True,'issues':{'missing_values':out.isna().sum().loc[lambda x:x>0].to_dict()}}; out['Date']=pd.to_datetime(out['Date'],errors='coerce'); bad_dates=int(out['Date'].isna().sum());
+  if bad_dates: report['validation_passed']=False; errors=[f'{bad_dates} invalid Date values']
+  else: errors=[]
   for c in ['Planned_Days','Actual_Days','Delay_Days','Cargo_Value','Freight_Cost','SLA_Penalty']:
    if out[c].isna().any(): out[c]=out[c].fillna(out[c].median())
   for c in ['Carrier','Cargo_Type','Mode','Client_Type','Incoterm','Warehouse','Analyst']:
