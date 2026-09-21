@@ -53,8 +53,12 @@ class SupplyChainPipeline:
         print(f"Portfolio Category: {self.PORTFOLIO_CATEGORY}")
         print("=" * 70)
         
-        # Step 1: Load and validate data
-        print("\n[1/5] Loading and validating data...")
+        # Step 1: Regenerate the deterministic synthetic dataset, then validate it.
+        # This keeps a fresh checkout's default execution aligned with the current generator.
+        print("\n[1/5] Regenerating, loading and validating data...")
+        generated = generate_dataset()
+        os.makedirs(os.path.dirname(self.data_path), exist_ok=True)
+        generated.to_csv(self.data_path, index=False)
         self.df, self.validation_report = load_and_validate_data(self.data_path)
         print(f"      Loaded {len(self.df):,} records")
         print(f"      Validation passed: {self.validation_report['validation_passed']}")
