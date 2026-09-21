@@ -66,10 +66,9 @@ class SupplyChainPipeline:
         engine = LogisticsAnalyticsEngine(self.df)
         self.analytics_results = engine.run_full_analysis()
         
-        savings = self.analytics_results['savings_analysis']
-        print(f"      Total identified savings: ${savings['total_savings']:,.2f}")
-        print(f"        - SLA Penalty Recovery: ${savings['sla_penalty_recovery']:,.2f}")
-        print(f"        - Cold-Chain Loss Prevention: ${savings['cold_chain_loss_prevention']:,.2f}")
+        financial = self.analytics_results['savings_analysis']
+        print(f"      Observed SLA penalties: ${financial['observed_sla_penalties']:,.2f}")
+        print(f"      35% cold-chain exposure scenario: ${financial['total_scenario_exposure_base_35pct']:,.2f}")
         
         # Step 3: Generate visualizations
         if generate_visualizations:
@@ -111,7 +110,8 @@ class SupplyChainPipeline:
         print(f"\nKey Results:")
         print(f"  - Total Shipments Analyzed: {len(self.df):,}")
         print(f"  - On-Time Delivery Rate: {self.df['On_Time'].mean() * 100:.1f}%")
-        print(f"  - Total Identified Savings: ${savings['total_savings']:,.2f}")
+        print(f"  - Observed SLA Penalties: ${financial['observed_sla_penalties']:,.2f}")
+        print(f"  - 35% Scenario Exposure: ${financial['total_scenario_exposure_base_35pct']:,.2f}")
         print(f"\nOutput Files:")
         for path in list(self.visualization_paths.values()) + list(self.report_paths.values()):
             print(f"  - {path}")
@@ -119,7 +119,8 @@ class SupplyChainPipeline:
         return {
             'success': True,
             'records_processed': len(self.df),
-            'total_savings': savings['total_savings'],
+            'observed_sla_penalties': financial['observed_sla_penalties'],
+            'scenario_exposure_35pct': financial['total_scenario_exposure_base_35pct'],
             'visualization_paths': self.visualization_paths,
             'report_paths': self.report_paths,
             'analytics_results': self.analytics_results
