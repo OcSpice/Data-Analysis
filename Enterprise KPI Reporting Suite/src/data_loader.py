@@ -84,6 +84,18 @@ class DataLoader:
                 (df["Revenue"] < df["Cost"]).sum()
             )
 
+        # Conversion cannot exceed 100% when Deals Closed is a subset of Leads Generated.
+        if {"Deals_Closed", "Leads_Generated"}.issubset(df.columns):
+            validity_issues["deals_exceed_leads"] = int(
+                (df["Deals_Closed"] > df["Leads_Generated"]).sum()
+            )
+
+        # Funnel counts should preserve the usual MQL -> SQL ordering.
+        if {"MQL_Count", "SQL_Count"}.issubset(df.columns):
+            validity_issues["sql_exceeds_mql"] = int(
+                (df["SQL_Count"] > df["MQL_Count"]).sum()
+            )
+
         for col in self.PERCENTAGE_COLUMNS:
             if col in df.columns:
                 numeric = pd.to_numeric(df[col], errors="coerce")
@@ -95,6 +107,19 @@ class DataLoader:
             validity_issues["invalid_sla_flag"] = int(
                 (~df["SLA_Met"].isin([0, 1])).sum()
             )
+
+        # Date dimensions should reconcile with the parsed source date.
+        if {"Date", "Year", "Month", "Quarter"}.issubset(df.columns):
+            parsed_date = pd.to_datetime(df["Date"], errors="coerce")
+            month_values = parsed_date.dt.strftime("%b")
+            quarter_values = "Q" + parsed_date.dt.quarter.astype("Int64").astype(str)
+            date_mismatch = (
+                parsed_date.isna()
+                | (pd.to_numeric(df["Year"], errors="coerce") != parsed_date.dt.year)
+                | (df["Month"].astype(str) != month_values)
+                | (df["Quarter"].astype(str) != quarter_values)
+            )
+            validity_issues["date_dimension_mismatch"] = int(date_mismatch.sum())
 
         validity_issue_count = sum(validity_issues.values())
         validity = max(
@@ -142,6 +167,10 @@ class DataLoader:
             "invalid_revenue_cost": int(
                 validity_issues.get("revenue_below_cost", 0)
             ),
+            "funnel_violations": {
+                "deals_exceed_leads": int(validity_issues.get("deals_exceed_leads", 0)),
+                "sql_exceeds_mql": int(validity_issues.get("sql_exceeds_mql", 0)),
+            },
             "negative_values": {
                 key.replace("negative_", ""): value
                 for key, value in validity_issues.items()
