@@ -1,4 +1,4 @@
-"""
+""" 
 Data Validation Module
 
 Provides data quality validation including missing value checks,
@@ -44,15 +44,7 @@ class DataValidator:
         self.validation_report: Dict[str, Any] = {}
     
     def validate(self, df: pd.DataFrame) -> Dict[str, Any]:
-        """
-        Perform comprehensive validation on the DataFrame.
-        
-        Args:
-            df: The DataFrame to validate.
-            
-        Returns:
-            dict: Validation report with status and details.
-        """
+        """Perform comprehensive validation on the DataFrame."""
         self.validation_report = {
             'status': 'passed',
             'missing_columns': [],
@@ -62,25 +54,17 @@ class DataValidator:
             'issues': []
         }
         
-        # Check required columns
         self._check_required_columns(df)
-        
-        # Check missing values
         self._check_missing_values(df)
-        
-        # Check for duplicates
         self._check_duplicates(df)
-        
-        # Validate categorical values
         self._validate_categorical_values(df)
-        
-        # Validate numerical ranges
         self._validate_numerical_ranges(df)
         
-        # Update overall status
-        if (self.validation_report['missing_columns'] or 
-            self.validation_report['invalid_values'] or
-            self.validation_report['issues']):
+        if (
+            self.validation_report['missing_columns']
+            or self.validation_report['invalid_values']
+            or self.validation_report['issues']
+        ):
             self.validation_report['status'] = 'warning'
         
         return self.validation_report
@@ -120,13 +104,11 @@ class DataValidator:
                     f"Found {duplicates} duplicate rows based on EmployeeNumber"
                 )
         else:
-            # Check full row duplicates
             duplicates = df.duplicated().sum()
             self.validation_report['duplicate_rows'] = duplicates
     
     def _validate_categorical_values(self, df: pd.DataFrame) -> None:
         """Validate that categorical columns have expected values."""
-        # Check Attrition column
         if 'Attrition' in df.columns:
             invalid_attrition = df[~df['Attrition'].isin(self.VALID_ATTRITION_VALUES)]
             if len(invalid_attrition) > 0:
@@ -137,7 +119,6 @@ class DataValidator:
                     f"Invalid values in Attrition column: {df['Attrition'].unique()}"
                 )
         
-        # Check OverTime column
         if 'OverTime' in df.columns:
             invalid_overtime = df[~df['OverTime'].isin(self.VALID_OVERTIME_VALUES)]
             if len(invalid_overtime) > 0:
@@ -147,7 +128,6 @@ class DataValidator:
     
     def _validate_numerical_ranges(self, df: pd.DataFrame) -> None:
         """Validate numerical columns are within reasonable ranges."""
-        # Age should be positive and reasonable (18-100)
         if 'Age' in df.columns:
             invalid_age = df[(df['Age'] < 18) | (df['Age'] > 100)]
             if len(invalid_age) > 0:
@@ -155,7 +135,6 @@ class DataValidator:
                     f"Found {len(invalid_age)} records with invalid Age values"
                 )
         
-        # MonthlyIncome should be positive
         if 'MonthlyIncome' in df.columns:
             invalid_income = df[df['MonthlyIncome'] <= 0]
             if len(invalid_income) > 0:
@@ -163,7 +142,6 @@ class DataValidator:
                     f"Found {len(invalid_income)} records with non-positive MonthlyIncome"
                 )
         
-        # YearsAtCompany should be non-negative
         if 'YearsAtCompany' in df.columns:
             invalid_tenure = df[df['YearsAtCompany'] < 0]
             if len(invalid_tenure) > 0:
@@ -171,34 +149,53 @@ class DataValidator:
                     f"Found {len(invalid_tenure)} records with negative YearsAtCompany"
                 )
     
-    def handle_missing_values(self, df: pd.DataFrame, 
-                              strategy: str = 'median') -> pd.DataFrame:
+    def handle_missing_values(
+        self, df: pd.DataFrame, strategy: str = 'median'
+    ) -> pd.DataFrame:
         """
-        Handle missing values in the DataFrame.
-        
-        Args:
-            df: The DataFrame with missing values.
-            strategy: Strategy for handling missing values ('median', 'mean', 'mode', 'drop').
-            
-        Returns:
-            pd.DataFrame: DataFrame with missing values handled.
+        Handle missing values without chained inplace assignment.
+
+        The predictive modeling pipeline performs its own train-only
+        imputation. This helper remains available for standalone data-quality
+        workflows and tests.
         """
+        if strategy not in {'median', 'mean', 'mode', 'drop'}:
+            raise ValueError(
+                "strategy must be one of: 'median', 'mean', 'mode', 'drop'"
+            )
+
         df_clean = df.copy()
         
         if strategy == 'drop':
-            df_clean = df_clean.dropna()
-        elif strategy == 'median':
-            for col in df_clean.select_dtypes(include=['float64', 'int64']).columns:
-                df_clean[col].fillna(df_clean[col].median(), inplace=True)
-            for col in df_clean.select_dtypes(include=['object', 'category']).columns:
-                df_clean[col].fillna(df_clean[col].mode()[0], inplace=True)
-        elif strategy == 'mean':
-            for col in df_clean.select_dtypes(include=['float64', 'int64']).columns:
-                df_clean[col].fillna(df_clean[col].mean(), inplace=True)
-            for col in df_clean.select_dtypes(include=['object', 'category']).columns:
-                df_clean[col].fillna(df_clean[col].mode()[0], inplace=True)
-        elif strategy == 'mode':
-            for col in df_clean.columns:
-                df_clean[col].fillna(df_clean[col].mode()[0], inplace=True)
-        
+            return df_clean.dropna()
+
+        if strategy in {'median', 'mean'}:
+            numeric_columns = df_clean.select_dtypes(
+                include=['number']
+            ).columns
+            categorical_columns = df_clean.select_dtypes(
+                include=['object', 'category', 'string']
+            ).columns
+
+            for col in numeric_columns:
+                fill_value = (
+                    df_clean[col].median()
+                    if strategy == 'median'
+                    else df_clean[col].mean()
+                )
+                if pd.notna(fill_value):
+                    df_clean[col] = df_clean[col].fillna(fill_value)
+
+            for col in categorical_columns:
+                mode = df_clean[col].mode(dropna=True)
+                if not mode.empty:
+                    df_clean[col] = df_clean[col].fillna(mode.iloc[0])
+
+            return df_clean
+
+        for col in df_clean.columns:
+            mode = df_clean[col].mode(dropna=True)
+            if not mode.empty:
+                df_clean[col] = df_clean[col].fillna(mode.iloc[0])
+
         return df_clean
