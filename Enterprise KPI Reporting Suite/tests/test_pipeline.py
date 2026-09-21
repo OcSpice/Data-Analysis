@@ -123,6 +123,11 @@ class TestKPIEngine:
         result = engine.calculate_department_kpis()
         assert np.isclose(result.loc["Sales", "Conv_Rate_Pct"], 8 / 30 * 100, atol=0.01)
 
+    def test_deals_closed_target_metric_is_per_record(self, sample_df):
+        engine = KPIAnalyticsEngine(sample_df)
+        result = engine.calculate_department_kpis()
+        assert np.isclose(result.loc["Sales", "Deals_Closed"], 8.0)
+
     def test_target_variance_is_explicit(self, sample_df):
         engine = KPIAnalyticsEngine(sample_df)
         variance = engine.get_department_target_variance("Finance")
