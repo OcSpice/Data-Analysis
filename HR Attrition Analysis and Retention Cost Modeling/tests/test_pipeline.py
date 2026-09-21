@@ -280,3 +280,66 @@ class TestIntegration:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+class TestAttritionModel:
+    """Tests for leakage-safe predictive modeling and evaluation."""
+
+    def test_model_training_produces_required_metrics(self):
+        from attrition_model import AttritionModel
+
+        data_path = Path(__file__).parent.parent / "HR-Employee-Attrition-Dataset.csv"
+        df = DataLoader(str(data_path)).load()
+        df = FeatureEngineer().create_features(df)
+
+        model = AttritionModel(random_state=42)
+        results = model.train(df)
+
+        assert set(["logistic_regression", "random_forest"]) == set(results["models"])
+        for metrics in results["models"].values():
+            for key in ["accuracy", "roc_auc", "pr_auc", "precision", "recall", "f1"]:
+                assert 0.0 <= metrics[key] <= 1.0
+        assert len(results["test_predicted_probabilities"]) == len(model.y_test)
+
+    def test_real_shap_values_are_generated(self):
+        pytest.importorskip("shap")
+        from attrition_model import AttritionModel
+
+        data_path = Path(__file__).parent.parent / "HR-Employee-Attrition-Dataset.csv"
+        df = DataLoader(str(data_path)).load()
+        df = FeatureEngineer().create_features(df)
+
+        model = AttritionModel(random_state=42)
+        results = model.train_and_explain(df)
+
+        assert model.shap_values is not None
+        assert model.shap_values.ndim == 2
+        assert len(results["top_features"]) > 0
+
+
+class TestBusinessImpact:
+    """Tests for scenario-based financial modeling."""
+
+    def test_retention_scenarios_are_bounded(self):
+        from business_impact import BusinessImpactAnalyzer
+
+        df = pd.DataFrame({
+            "Attrition": ["Yes", "No", "Yes"],
+            "AnnualIncome": [40000, 50000, 60000],
+        })
+        analyzer = BusinessImpactAnalyzer(replacement_cost_multiplier=1.5)
+        impact = analyzer.calculate_impact(df, {}, {})
+
+        assert impact["total_replacement_cost"] == (40000 + 60000) * 1.5
+        assert len(impact["retention_scenarios"]) == 5
+        assert impact["retention_scenarios"][0]["avoided_cost_estimate"] == impact["total_replacement_cost"] * 0.10
+        assert impact["retention_scenarios"][-1]["avoided_cost_estimate"] == impact["total_replacement_cost"] * 0.50
+
+    def test_invalid_scenario_effectiveness_is_rejected(self):
+        from business_impact import BusinessImpactAnalyzer
+
+        with pytest.raises(ValueError):
+            BusinessImpactAnalyzer(scenario_effectiveness=[-0.1, 0.2])
+
+        with pytest.raises(ValueError):
+            BusinessImpactAnalyzer(scenario_effectiveness=[0.2, 1.1])

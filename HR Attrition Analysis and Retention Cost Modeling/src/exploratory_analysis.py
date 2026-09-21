@@ -177,10 +177,9 @@ class ExploratoryAnalysis:
     
     def _calculate_overtime_risk_ratio(self, df: pd.DataFrame) -> float:
         """
-        Calculate the risk ratio of attrition for overtime vs non-overtime workers.
+        Calculate the ratio of observed attrition rates for overtime vs non-overtime workers.
         
-        This is a key business metric showing how much more likely overtime
-        workers are to leave compared to non-overtime workers.
+        This descriptive metric compares observed attrition rates; it does not establish causation.
         
         Args:
             df: Input DataFrame.
@@ -282,8 +281,9 @@ class ExploratoryAnalysis:
         overtime_rates = self.analysis_results.get('attrition_by_overtime', {})
         if overtime_ratio > 1:
             insights.append(
-                f"Overtime workers quit at {overtime_ratio:.1f}x the rate of non-overtime workers "
-                f"({overtime_rates.get('Yes', 0):.1%} vs {overtime_rates.get('No', 0):.1%})"
+                f"Observed attrition among overtime employees was {overtime_ratio:.1f}x the rate "
+                f"among non-overtime employees ({overtime_rates.get('Yes', 0):.1%} vs "
+                f"{overtime_rates.get('No', 0):.1%}); this is an association, not a causal estimate."
             )
         
         # Financial insight
