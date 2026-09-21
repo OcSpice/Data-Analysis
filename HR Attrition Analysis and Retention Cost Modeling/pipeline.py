@@ -1,16 +1,10 @@
 """
-HR Attrition Analysis and Retention Cost Modeling Pipeline
-Data Analysis Portfolio Project
-
-This module provides the main pipeline for analyzing employee attrition,
-calculating replacement costs, and generating retention recommendations.
+End-to-end HR attrition analysis pipeline.
 """
 
-import os
 import sys
 from pathlib import Path
 
-# Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from data_loader import DataLoader
@@ -24,98 +18,97 @@ from report_generator import ReportGenerator
 
 
 def main():
-    """Execute the full attrition analysis pipeline."""
-    
-    # Define paths
+    """Execute the complete HR attrition analysis."""
     base_dir = Path(__file__).parent
     data_path = base_dir / "HR-Employee-Attrition-Dataset.csv"
     reports_dir = base_dir / "reports"
-    
-    print("=" * 60)
+
+    print("=" * 72)
     print("HR ATTRITION ANALYSIS AND RETENTION COST MODELING")
-    print("Data Analysis Portfolio Project")
-    print("=" * 60)
-    
-    # Step 1: Load Data
-    print("\n[1/7] Loading data...")
-    loader = DataLoader(data_path)
-    df = loader.load()
-    print(f"Loaded {len(df)} employee records with {len(df.columns)} features")
-    
-    # Step 2: Validate Data Quality
-    print("\n[2/7] Validating data quality...")
-    validator = DataValidator()
-    validation_report = validator.validate(df)
-    print(f"Validation complete: {validation_report['status']}")
-    if validation_report['missing_columns']:
-        print(f"Missing columns: {validation_report['missing_columns']}")
-    
-    # Step 3: Apply PII Masking
-    print("\n[3/7] Applying PII masking...")
-    masker = PIIMasker()
-    df_masked = masker.mask(df, columns=['EmployeeNumber'])
-    print("PII masking applied to sensitive fields")
-    
-    # Step 4: Feature Engineering
-    print("\n[4/7] Engineering features...")
-    engineer = FeatureEngineer()
-    df_enriched = engineer.create_features(df_masked)
-    print(f"Created features: ReplacementCost, AnnualIncome, TenureBucket")
-    
-    # Step 5: Exploratory Analysis
-    print("\n[5/7] Running exploratory analysis...")
+    print("=" * 72)
+
+    print("\n[1/7] Loading data")
+    df = DataLoader(data_path).load()
+    print(f"Loaded {len(df):,} employee records and {len(df.columns)} source columns")
+
+    print("\n[2/7] Validating data quality")
+    validation = DataValidator().validate(df)
+    print(f"Validation status: {validation['status']}")
+    if validation["issues"]:
+        for issue in validation["issues"]:
+            print(f"  - {issue}")
+
+    print("\n[3/7] Masking employee identifiers")
+    df_masked = PIIMasker(salt="portfolio-hr-analysis").mask(
+        df, columns=["EmployeeNumber"]
+    )
+
+    print("\n[4/7] Engineering analytical features")
+    df_enriched = FeatureEngineer(replacement_cost_multiplier=1.5).create_features(
+        df_masked
+    )
+
+    print("\n[5/7] Running workforce analysis")
     explorer = ExploratoryAnalysis()
     insights = explorer.analyze(df_enriched)
-    
-    print(f"\nKey Findings:")
-    print(f"  - Overall Attrition Rate: {insights['overall_attrition_rate']:.1%}")
-    print(f"  - Attrition Rate (Overtime=Yes): {insights['attrition_by_overtime']['Yes']:.1%}")
-    print(f"  - Attrition Rate (Overtime=No): {insights['attrition_by_overtime']['No']:.1%}")
-    print(f"  - Overtime workers quit at {insights['overtime_risk_ratio']:.1f}x the rate of non-overtime workers")
-    
-    # Step 6: Predictive Modeling with SHAP
-    print("\n[6/7] Training attrition prediction model...")
-    model = AttritionModel()
+
+    print(f"Overall attrition: {insights['overall_attrition_rate']:.1%}")
+    overtime = insights["attrition_by_overtime"]
+    print(
+        f"Observed attrition — overtime: {overtime.get('Yes', 0):.1%}; "
+        f"non-overtime: {overtime.get('No', 0):.1%}"
+    )
+    print(f"Observed overtime rate ratio: {insights['overtime_risk_ratio']:.2f}x")
+
+    print("\n[6/7] Training and explaining attrition models")
+    model = AttritionModel(random_state=42)
     model_results = model.train_and_explain(df_enriched)
-    
-    print(f"Model Accuracy: {model_results['accuracy']:.1%}")
-    print(f"Model AUC-ROC: {model_results['auc_roc']:.3f}")
-    print(f"\nTop 5 Drivers of Attrition (SHAP values):")
-    for i, (feature, importance) in enumerate(model_results['top_features'].items(), 1):
-        print(f"  {i}. {feature}: {importance:.4f}")
-    
-    # Step 7: Business Impact Analysis
-    print("\n[7/7] Calculating business impact...")
-    analyzer = BusinessImpactAnalyzer(replacement_cost_multiplier=1.5)
+
+    for name, metrics in model_results["models"].items():
+        print(
+            f"{name}: ROC-AUC={metrics['roc_auc']:.3f}, "
+            f"PR-AUC={metrics['pr_auc']:.3f}, "
+            f"Recall={metrics['recall']:.3f}, F1={metrics['f1']:.3f}"
+        )
+    print("Top model explanation features:")
+    for feature, value in list(model_results["top_features"].items())[:5]:
+        print(f"  - {feature}: {value:.5f}")
+
+    print("\n[7/7] Calculating business impact")
+    analyzer = BusinessImpactAnalyzer(
+        replacement_cost_multiplier=1.5,
+        high_risk_threshold=0.50,
+    )
     impact = analyzer.calculate_impact(df_enriched, insights, model_results)
-    
-    print(f"\nBUSINESS IMPACT SUMMARY:")
-    print(f"  - Total Annual Replacement Cost Exposure: ${impact['total_replacement_cost']:,.0f}")
-    print(f"  - At-Risk Employees (High Probability): {impact['high_risk_employees']['count']}")
-    print(f"  - Potential Savings with Retention Plan: ${impact['potential_savings']:,.0f}")
-    
-    # Generate Reports
-    print("\n" + "=" * 60)
-    print("GENERATING REPORTS")
-    print("=" * 60)
-    
-    reporter = ReportGenerator(reports_dir)
-    reporter.generate_all_reports(
+
+    print(
+        f"Observed replacement-cost exposure: "
+        f"{impact['total_replacement_cost']:,.0f} USD"
+    )
+    print("Illustrative retention scenarios:")
+    for scenario in impact["retention_scenarios"]:
+        print(
+            f"  - {scenario['retention_effectiveness']:.0%}: "
+            f"{scenario['avoided_cost_estimate']:,.0f} USD"
+        )
+
+    print("\nGenerating reports")
+    ReportGenerator(reports_dir).generate_all_reports(
         df_enriched=df_enriched,
         insights=insights,
         model_results=model_results,
-        impact=impact
+        impact=impact,
+        validation_report=validation,
     )
-    
-    print("\nPipeline completed successfully!")
-    print(f"Reports saved to: {reports_dir}")
-    
+
+    print("\nPipeline completed successfully.")
     return {
-        'insights': insights,
-        'model_results': model_results,
-        'impact': impact
+        "validation": validation,
+        "insights": insights,
+        "model_results": model_results,
+        "impact": impact,
     }
 
 
 if __name__ == "__main__":
-    results = main()
+    main()

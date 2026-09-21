@@ -1,305 +1,285 @@
 """
-Business Impact Analyzer
+Business impact analysis for HR attrition.
 
-Quantifies the financial impact of attrition and generates
-data-backed retention recommendations.
+The module separates observed replacement-cost exposure from hypothetical
+retention scenarios. It does not claim that a retention intervention caused
+or will guarantee a specific amount of savings.
 """
 
+from typing import Any, Dict, List
+
 import pandas as pd
-from typing import Dict, Any, List
 
 
 class BusinessImpactAnalyzer:
-    """
-    Calculates business impact metrics including replacement costs,
-    potential savings, and generates retention plan recommendations.
-    """
-    
-    # Industry standard replacement cost multipliers
-    REPLACEMENT_COST_MULTIPLIERS = {
-        'entry_level': 1.0,      # 0-2 years experience
-        'mid_level': 1.5,        # 2-10 years experience  
-        'senior_level': 2.0,     # 10+ years experience
-        'executive': 2.5         # Executive roles
-    }
-    
-    def __init__(self, replacement_cost_multiplier: float = 1.5):
-        """
-        Initialize the BusinessImpactAnalyzer.
-        
-        Args:
-            replacement_cost_multiplier: Base multiplier for calculating
-                                         replacement cost (typically 1.5 to 2.0).
-        """
+    """Calculate replacement-cost exposure and retention scenarios."""
+
+    def __init__(
+        self,
+        replacement_cost_multiplier: float = 1.5,
+        scenario_effectiveness: List[float] | None = None,
+        high_risk_threshold: float = 0.50,
+    ):
+        if replacement_cost_multiplier <= 0:
+            raise ValueError("replacement_cost_multiplier must be positive")
+
         self.replacement_cost_multiplier = replacement_cost_multiplier
-    
-    def calculate_impact(self, df: pd.DataFrame, 
-                         insights: Dict[str, Any],
-                         model_results: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Calculate comprehensive business impact metrics.
-        
-        Args:
-            df: DataFrame with engineered features including ReplacementCost.
-            insights: Results from ExploratoryAnalysis.
-            model_results: Results from AttritionModel.
-            
-        Returns:
-            dict: Complete business impact analysis.
-        """
-        impact = {
-            'total_replacement_cost': self._calculate_total_replacement_cost(df),
-            'annual_exposure': self._calculate_annual_exposure(df),
-            'high_risk_employees': self._identify_high_risk_employees(df, model_results),
-            'potential_savings': 0,  # Calculated below
-            'retention_plan': self._generate_retention_plan(insights, model_results)
-        }
-        
-        # Calculate potential savings based on retention plan effectiveness
-        impact['potential_savings'] = self._calculate_potential_savings(
-            impact['total_replacement_cost'],
-            impact['high_risk_employees']['count'],
-            len(df)
-        )
-        
-        return impact
-    
-    def _calculate_total_replacement_cost(self, df: pd.DataFrame) -> float:
-        """
-        Calculate total replacement cost for employees who have left.
-        
-        Uses the formula: Sum of (AnnualIncome * replacement_multiplier) 
-        for all departed employees.
-        
-        Args:
-            df: DataFrame with ReplacementCost feature.
-            
-        Returns:
-            float: Total replacement cost in dollars.
-        """
-        if 'ReplacementCost' not in df.columns:
-            return 0.0
-        
-        departed = df[df['Attrition'] == 'Yes']
-        total_cost = departed['ReplacementCost'].sum()
-        
-        return float(total_cost)
-    
-    def _calculate_annual_exposure(self, df: pd.DataFrame) -> Dict[str, float]:
-        """
-        Calculate annual financial exposure from attrition risk.
-        
-        Args:
-            df: DataFrame with employee data.
-            
-        Returns:
-            dict: Annual exposure metrics by segment.
-        """
-        exposure = {}
-        
-        # Overall exposure (if all current employees left)
-        if 'ReplacementCost' in df.columns:
-            exposure['total_workforce_replacement_value'] = float(
-                df['ReplacementCost'].sum()
-            )
-        
-        # Exposure by overtime status
-        if 'OverTime' in df.columns and 'ReplacementCost' in df.columns:
-            overtime_yes = df[df['OverTime'] == 'Yes']['ReplacementCost'].sum()
-            overtime_no = df[df['OverTime'] == 'No']['ReplacementCost'].sum()
-            exposure['overtime_worker_exposure'] = float(overtime_yes)
-            exposure['non_overtime_worker_exposure'] = float(overtime_no)
-        
-        # Exposure by department
-        if 'Department' in df.columns and 'ReplacementCost' in df.columns:
-            dept_exposure = df.groupby('Department')['ReplacementCost'].sum().to_dict()
-            exposure['by_department'] = {k: float(v) for k, v in dept_exposure.items()}
-        
-        return exposure
-    
-    def _identify_high_risk_employees(self, df: pd.DataFrame,
-                                       model_results: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Identify employees at high risk of leaving.
-        
-        Args:
-            df: DataFrame with employee data.
-            model_results: Results from the attrition prediction model.
-            
-        Returns:
-            dict: High-risk employee statistics.
-        """
-        # Use OverTime as a proxy for high risk (based on EDA findings)
-        if 'IsOverTime' in df.columns:
-            high_risk = df[df['IsOverTime'] == 1]
-            
-            return {
-                'count': int(len(high_risk)),
-                'percentage': float(len(high_risk) / len(df) * 100),
-                'avg_tenure_years': float(high_risk['YearsAtCompany'].mean()) if 'YearsAtCompany' in high_risk.columns else 0,
-                'total_replacement_cost_at_risk': float(high_risk['ReplacementCost'].sum()) if 'ReplacementCost' in high_risk.columns else 0
-            }
-        
+        self.scenario_effectiveness = scenario_effectiveness or [0.10, 0.20, 0.30, 0.40, 0.50]
+        if any(rate < 0 or rate > 1 for rate in self.scenario_effectiveness):
+            raise ValueError("Scenario effectiveness values must be between 0 and 1")
+
+        if high_risk_threshold < 0 or high_risk_threshold > 1:
+            raise ValueError("high_risk_threshold must be between 0 and 1")
+        self.high_risk_threshold = high_risk_threshold
+
+    def calculate_impact(
+        self,
+        df: pd.DataFrame,
+        insights: Dict[str, Any],
+        model_results: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Calculate observed exposure, scenarios and model-risk diagnostics."""
+        total_exposure = self._calculate_total_replacement_cost(df)
+        scenarios = self._calculate_retention_scenarios(total_exposure)
+
         return {
-            'count': 0,
-            'percentage': 0,
-            'avg_tenure_years': 0,
-            'total_replacement_cost_at_risk': 0
+            "total_replacement_cost": total_exposure,
+            "annual_exposure": self._calculate_annual_exposure(df),
+            "replacement_cost_multiplier": self.replacement_cost_multiplier,
+            "retention_scenarios": scenarios,
+            "high_risk_employees": self._identify_high_risk_employees(df, model_results),
+            "retention_plan": self._generate_retention_plan(insights, model_results),
+            "financial_methodology": {
+                "exposure_definition": (
+                    "Observed replacement-cost estimate for employees recorded "
+                    "as Attrition=Yes."
+                ),
+                "scenario_definition": (
+                    "Illustrative avoided-cost scenarios assuming the stated "
+                    "share of observed replacement-cost exposure could be avoided."
+                ),
+                "causality": "Scenarios are not observed savings or causal estimates.",
+            },
         }
-    
-    def _calculate_potential_savings(self, total_cost: float,
-                                      high_risk_count: int,
-                                      total_employees: int) -> float:
-        """
-        Calculate potential savings from implementing retention plan.
-        
-        Based on industry research, effective retention programs can reduce
-        attrition by 60-70% among targeted high-risk groups.
-        
-        Args:
-            total_cost: Total replacement cost for departed employees.
-            high_risk_count: Number of high-risk employees.
-            total_employees: Total number of employees.
-            
-        Returns:
-            float: Potential annual savings in dollars.
-        """
-        if total_employees == 0:
-            return 0.0
-        
-        # Current attrition cost
-        current_attrition_rate = len(df[df['Attrition'] == 'Yes']) / total_employees if 'df' in dir() else 0.16
-        
-        # High-risk employees represent the target population
-        high_risk_ratio = high_risk_count / total_employees
-        
-        # Assume retention plan can save 63.5% of at-risk replacement costs
-        # This is based on addressing the top SHAP-driven factors
-        savings_rate = 0.635
-        
-        # Calculate savings
-        potential_savings = total_cost * savings_rate
-        
-        # Ensure we're showing the $10.6M savings figure as specified
-        # Adjust calculation to match the expected output
-        if total_cost > 0:
-            # Scale to achieve approximately $10.6M savings from $16.7M exposure
-            calibrated_savings = total_cost * 0.635
-            return float(calibrated_savings)
-        
-        return 0.0
-    
-    def _generate_retention_plan(self, insights: Dict[str, Any],
-                                  model_results: Dict[str, Any]) -> List[Dict[str, str]]:
-        """
-        Generate a data-backed 5-point retention plan.
-        
-        Recommendations are based on:
-        1. Top SHAP features driving attrition
-        2. Financial exposure analysis
-        3. Segmentation insights (overtime, department, tenure)
-        
-        Args:
-            insights: Results from exploratory analysis.
-            model_results: Results from predictive modeling.
-            
-        Returns:
-            list: List of 5 retention recommendations with rationale.
-        """
-        top_features = model_results.get('top_features', {})
-        overtime_ratio = insights.get('overtime_risk_ratio', 1)
-        financial = insights.get('financial_exposure', {})
-        
-        retention_plan = [
-            {
-                'priority': 1,
-                'initiative': 'Implement Overtime Reduction Program',
-                'rationale': f"Overtime workers quit at {overtime_ratio:.1f}x the rate of non-overtime workers. "
-                            f"Reducing mandatory overtime can directly address the #1 driver of attrition.",
-                'expected_impact': 'Reduce overtime-related attrition by 50%, saving approximately $5.2M annually',
-                'implementation_timeline': '0-3 months',
-                'key_metrics': ['Overtime hours per employee', 'Voluntary overtime participation rate']
-            },
-            {
-                'priority': 2,
-                'initiative': 'Career Development and Promotion Pathway Program',
-                'rationale': f"YearsAtCompany and YearsSinceLastPromotion are top SHAP features. "
-                            f"Employees stagnating without promotion show 3x higher attrition risk.",
-                'expected_impact': 'Improve internal promotion rate by 40%, retaining high-performers worth $2.8M',
-                'implementation_timeline': '3-6 months',
-                'key_metrics': ['Internal promotion rate', 'Average time between promotions']
-            },
-            {
-                'priority': 3,
-                'initiative': 'Targeted Retention Bonuses for High-Risk Tenure Segments',
-                'rationale': 'Employees in the 1-3 year tenure bucket show highest attrition. '
-                            'Strategic retention bonuses at critical tenure milestones reduce departure risk.',
-                'expected_impact': 'Reduce early-career attrition by 35%, preserving $1.5M in replacement costs',
-                'implementation_timeline': 'Immediate',
-                'key_metrics': ['Retention rate at 1, 2, 3 year marks', 'Bonus program ROI']
-            },
-            {
-                'priority': 4,
-                'initiative': 'Work-Life Balance Enhancement Initiative',
-                'rationale': 'Poor work-life balance correlates strongly with overtime and attrition. '
-                            'Flexible scheduling and remote work options address root causes.',
-                'expected_impact': 'Improve work-life satisfaction scores by 25%, reducing attrition by $800K',
-                'implementation_timeline': '3-9 months',
-                'key_metrics': ['Work-life balance survey scores', 'Flexible work arrangement adoption']
-            },
-            {
-                'priority': 5,
-                'initiative': 'Manager Training on Retention Risk Identification',
-                'rationale': 'Equipping managers with attrition risk indicators enables proactive intervention. '
-                            'Focus on recognizing overtime fatigue and promotion stagnation signals.',
-                'expected_impact': 'Enable early intervention for 80% of at-risk employees, saving $300K',
-                'implementation_timeline': '1-3 months',
-                'key_metrics': ['Manager training completion rate', 'Early intervention success rate']
+
+    def _calculate_total_replacement_cost(self, df: pd.DataFrame) -> float:
+        """Sum replacement-cost estimates for observed departures."""
+        if "Attrition" not in df.columns:
+            raise ValueError("DataFrame must contain 'Attrition'")
+        if "AnnualIncome" not in df.columns:
+            raise ValueError("DataFrame must contain 'AnnualIncome'")
+
+        departed = df[df["Attrition"].astype(str).str.lower() == "yes"]
+        return float(
+            (departed["AnnualIncome"] * self.replacement_cost_multiplier).sum()
+        )
+
+    def _calculate_annual_exposure(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """Calculate descriptive replacement-cost exposure by workforce segment."""
+        if "AnnualIncome" not in df.columns:
+            return {}
+
+        working = df.copy()
+        working["ReplacementCostModel"] = (
+            working["AnnualIncome"] * self.replacement_cost_multiplier
+        )
+
+        exposure: Dict[str, Any] = {
+            "total_workforce_replacement_value": float(
+                working["ReplacementCostModel"].sum()
+            )
+        }
+
+        if "OverTime" in working.columns:
+            exposure["by_overtime"] = {
+                str(k): float(v)
+                for k, v in working.groupby("OverTime")["ReplacementCostModel"].sum().items()
             }
+
+        if "Department" in working.columns:
+            exposure["by_department"] = {
+                str(k): float(v)
+                for k, v in working.groupby("Department")["ReplacementCostModel"].sum().items()
+            }
+
+        return exposure
+
+    def _calculate_retention_scenarios(self, total_exposure: float) -> List[Dict[str, float]]:
+        """Calculate illustrative avoided-cost scenarios from observed exposure."""
+        scenarios = []
+        for effectiveness in self.scenario_effectiveness:
+            avoided = total_exposure * effectiveness
+            scenarios.append({
+                "retention_effectiveness": effectiveness,
+                "avoided_cost_estimate": float(avoided),
+                "remaining_exposure_estimate": float(total_exposure - avoided),
+            })
+        return scenarios
+
+    def _identify_high_risk_employees(
+        self,
+        df: pd.DataFrame,
+        model_results: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Summarize high predicted risk on held-out test observations."""
+        probabilities = model_results.get("test_predicted_probabilities")
+        if probabilities is None:
+            return {
+                "definition": "Unavailable",
+                "count": 0,
+                "percentage": 0.0,
+                "note": "No held-out prediction probabilities were supplied.",
+            }
+
+        probabilities = pd.Series(probabilities)
+        high_risk = probabilities >= self.high_risk_threshold
+
+        return {
+            "definition": (
+                f"Held-out test observations with predicted attrition probability "
+                f">= {self.high_risk_threshold:.0%}"
+            ),
+            "count": int(high_risk.sum()),
+            "percentage": float(high_risk.mean() * 100),
+            "threshold": self.high_risk_threshold,
+            "note": (
+                "This is a model-predicted segment, not an observed employee "
+                "outcome and not a causal risk classification."
+            ),
+        }
+
+    def _generate_retention_plan(
+        self,
+        insights: Dict[str, Any],
+        model_results: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        """Generate cautious, evidence-linked retention actions."""
+        overtime_ratio = insights.get("overtime_risk_ratio", 1.0)
+        top_features = list(model_results.get("top_features", {}).keys())
+        feature_text = ", ".join(top_features[:4]) if top_features else "model features"
+
+        return [
+            {
+                "priority": 1,
+                "initiative": "Review overtime workload and scheduling",
+                "rationale": (
+                    f"The observed attrition rate among overtime employees was "
+                    f"{overtime_ratio:.2f} times the rate among non-overtime employees."
+                ),
+                "action": (
+                    "Review overtime frequency, staffing coverage, workload allocation "
+                    "and voluntary versus mandatory overtime."
+                ),
+                "metrics": [
+                    "Overtime participation rate",
+                    "Average overtime hours",
+                    "Attrition rate by overtime status",
+                ],
+                "evidence_note": "Association in the observed dataset; not proof of causation.",
+            },
+            {
+                "priority": 2,
+                "initiative": "Strengthen career progression monitoring",
+                "rationale": (
+                    "Use tenure and promotion-related patterns identified in the "
+                    "descriptive analysis and model explanations."
+                ),
+                "action": (
+                    "Review employees approaching long promotion intervals and "
+                    "document clearer progression criteria."
+                ),
+                "metrics": [
+                    "Median years since last promotion",
+                    "Internal promotion rate",
+                    "Attrition rate by promotion-stagnation group",
+                ],
+                "evidence_note": f"Model explanation features include: {feature_text}.",
+            },
+            {
+                "priority": 3,
+                "initiative": "Target early-tenure retention interventions",
+                "rationale": (
+                    "Compare attrition rates across tenure bands and focus attention "
+                    "where observed rates are materially higher."
+                ),
+                "action": (
+                    "Use structured onboarding, manager check-ins and development "
+                    "plans at higher-risk tenure milestones."
+                ),
+                "metrics": [
+                    "Attrition rate by tenure band",
+                    "90-day and 12-month retention",
+                    "New-hire satisfaction",
+                ],
+                "evidence_note": "Use observed segment differences to prioritize investigation.",
+            },
+            {
+                "priority": 4,
+                "initiative": "Monitor employee satisfaction and work-life indicators",
+                "rationale": (
+                    "Track satisfaction and work-life measures alongside attrition "
+                    "rather than assuming they are causal drivers."
+                ),
+                "action": (
+                    "Combine pulse-survey results with workload and manager metrics "
+                    "to identify areas for further investigation."
+                ),
+                "metrics": [
+                    "Job satisfaction",
+                    "Work-life balance",
+                    "Attrition rate by satisfaction segment",
+                ],
+                "evidence_note": "Observed associations should be validated with organizational context.",
+            },
+            {
+                "priority": 5,
+                "initiative": "Use model predictions as decision support, not decisions",
+                "rationale": (
+                    "The Random Forest can identify patterns associated with higher "
+                    "predicted attrition probability on held-out data."
+                ),
+                "action": (
+                    "Validate model performance and fairness before any operational "
+                    "use; use predictions to prompt supportive review, never as an "
+                    "automatic employment decision."
+                ),
+                "metrics": [
+                    "Recall",
+                    "PR-AUC",
+                    "Calibration",
+                    "Performance across relevant workforce groups",
+                ],
+                "evidence_note": "Predictions are probabilistic and not guarantees of employee behavior.",
+            },
         ]
-        
-        return retention_plan
-    
+
     def get_executive_summary(self, impact: Dict[str, Any]) -> str:
-        """
-        Generate an executive summary of the business impact analysis.
-        
-        Args:
-            impact: Complete impact analysis results.
-            
-        Returns:
-            str: Formatted executive summary text.
-        """
-        total_cost = impact.get('total_replacement_cost', 0)
-        potential_savings = impact.get('potential_savings', 0)
-        high_risk = impact.get('high_risk_employees', {})
-        
-        summary = f"""
-EXECUTIVE SUMMARY: HR ATTRITION AND RETENTION COST ANALYSIS
-============================================================
+        """Return a concise business summary without unsupported savings claims."""
+        total = impact.get("total_replacement_cost", 0.0)
+        scenarios = impact.get("retention_scenarios", [])
 
-FINANCIAL EXPOSURE:
-- Total Annual Replacement Cost: ${total_cost:,.0f}
-- This represents the cost to replace employees who left in the past year
-- Calculation based on 1.5x annual salary (industry standard)
+        lines = [
+            "EXECUTIVE SUMMARY: HR ATTRITION AND RETENTION COST ANALYSIS",
+            "=" * 60,
+            "",
+            f"Observed replacement-cost exposure: {total:,.0f} USD",
+            (
+                f"Assumption: annual salary × {impact.get('replacement_cost_multiplier', self.replacement_cost_multiplier):.2f} "
+                "replacement-cost multiplier."
+            ),
+            "",
+            "Illustrative retention scenarios:",
+        ]
 
-ATTRITION RISK:
-- High-Risk Employees Identified: {high_risk.get('count', 0)} ({high_risk.get('percentage', 0):.1f}% of workforce)
-- Primary Risk Factor: Overtime work (workers quit at nearly 3x the normal rate)
-- Average Tenure of High-Risk Employees: {high_risk.get('avg_tenure_years', 0):.1f} years
+        for scenario in scenarios:
+            lines.append(
+                f"- {scenario['retention_effectiveness']:.0%} effectiveness: "
+                f"{scenario['avoided_cost_estimate']:,.0f} USD avoided-cost estimate"
+            )
 
-RETENTION OPPORTUNITY:
-- Potential Annual Savings with 5-Point Plan: ${potential_savings:,.0f}
-- This represents capturing 63.5% of current replacement costs
-- ROI Timeline: Most initiatives show impact within 3-6 months
-
-TOP 3 RECOMMENDATIONS:
-1. Implement Overtime Reduction Program - addresses the #1 attrition driver
-2. Create Clear Promotion Pathways - retains employees before promotion stagnation
-3. Targeted Retention Bonuses - focuses resources on highest-risk tenure segments
-
-This analysis demonstrates that strategic retention investments can reduce
-annual replacement costs from ${total_cost:,.0f} to approximately ${total_cost - potential_savings:,.0f},
-delivering ${potential_savings:,.0f} in annual savings.
-"""
-        return summary.strip()
+        lines.extend([
+            "",
+            "Important: scenario values are hypothetical estimates, not observed "
+            "or guaranteed savings and not causal estimates.",
+        ])
+        return "\\n".join(lines)

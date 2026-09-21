@@ -1,0 +1,40 @@
+name: HR Attrition Validation
+
+on:
+  pull_request:
+    paths:
+      - "HR Attrition Analysis and Retention Cost Modeling/**"
+      - ".github/workflows/hr-attrition-validation.yml"
+  push:
+    branches:
+      - rebuild-hr-attrition
+    paths:
+      - "HR Attrition Analysis and Retention Cost Modeling/**"
+      - ".github/workflows/hr-attrition-validation.yml"
+
+jobs:
+  test-and-run:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: HR Attrition Analysis and Retention Cost Modeling
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: "HR Attrition Analysis and Retention Cost Modeling/requirements.txt"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest -q
+
+      - name: Run full HR analysis pipeline
+        run: python pipeline.py

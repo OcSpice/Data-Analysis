@@ -16,7 +16,7 @@ class FeatureEngineer:
     financial metrics, tenure categorizations, and risk indicators.
     """
     
-    # Replacement cost multiplier (industry standard: 1.5x to 2x annual salary)
+    # Replacement-cost assumption configured by the analysis
     DEFAULT_REPLACEMENT_COST_MULTIPLIER = 1.5
     
     # Tenure bucket boundaries in years
@@ -71,7 +71,7 @@ class FeatureEngineer:
             df['AnnualIncome'] = df['MonthlyIncome'] * 12
         
         # Replacement Cost (AnnualIncome * multiplier)
-        # This represents the estimated cost to replace an employee
+        # This is an analytical estimate based on the configured assumption.
         if 'AnnualIncome' in df.columns:
             df['ReplacementCost'] = df['AnnualIncome'] * self.replacement_cost_multiplier
         

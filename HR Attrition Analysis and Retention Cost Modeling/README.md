@@ -1,267 +1,272 @@
 # HR Attrition Analysis and Retention Cost Modeling
 
-## Portfolio Category: Data Analysis (Enhanced with Predictive Insights)
+An end-to-end **HR Data Analysis** project that combines workforce attrition analysis, leakage-safe predictive modeling, model explainability, and scenario-based replacement-cost analysis.
 
-A production-ready Python repository demonstrating senior-level data analysis capabilities through comprehensive HR attrition analysis, business impact quantification, and PII-compliant data handling.
+## Business Objective
 
----
+The project examines employee attrition patterns and translates the findings into:
 
-## Executive Summary
+- workforce segmentation and descriptive insights
+- a reproducible attrition prediction workflow
+- model explanations using genuine SHAP values
+- estimated replacement-cost exposure
+- illustrative retention-effectiveness scenarios
 
-This project analyzes employee attrition patterns using the IBM HR Employee Attrition dataset (1,470 records) to quantify business impact and generate actionable retention recommendations.
+The project deliberately distinguishes **observed associations**, **model predictions**, and **financial scenarios**. It does not claim that an observed feature causes attrition or that a retention program will generate a guaranteed saving.
 
-### Key Business Metrics
+## Dataset
 
-| Metric | Value |
-|--------|-------|
-| **Total Annual Replacement Cost Exposure** | **$16.7 million** |
-| **Potential Annual Savings with 5-Point Plan** | **$10.6 million** |
-| Overtime Worker Attrition Rate | ~31% |
-| Non-Overtime Worker Attrition Rate | ~11% |
-| **Overtime Risk Ratio** | **~2.9x** (overtime workers quit at nearly 3x the rate) |
+- 1,470 employee records
+- IBM HR Employee Attrition benchmark dataset
+- Target: `Attrition`
+- Publicly shared employee identifiers are masked before analysis outputs are generated.
 
----
+## Analytical Workflow
 
-## Project Structure
+### 1. Data quality
 
-```
+- schema validation
+- missing-value checks
+- duplicate checks
+- categorical-value validation
+- numerical-range validation
+- employee identifier masking
+
+### 2. Feature engineering
+
+Derived features include:
+
+- `AnnualIncome` = MonthlyIncome × 12
+- `ReplacementCost` = AnnualIncome × configured replacement-cost multiplier
+- `TenureBucket`
+- `IsOverTime`
+- `PromotionStagnation`
+- `LowSatisfactionCount`
+- `PoorWorkLifeBalance`
+
+### 3. Workforce analysis
+
+The descriptive analysis covers:
+
+- overall attrition
+- overtime vs non-overtime attrition
+- department
+- job role
+- tenure
+- selected workforce and financial segments
+
+The overtime comparison is reported as an **observed attrition-rate ratio**, not a causal risk estimate.
+
+### 4. Predictive modeling
+
+Two models are evaluated:
+
+1. **Logistic Regression** — interpretable baseline
+2. **Random Forest** — nonlinear comparison model
+
+Preprocessing is implemented with scikit-learn `ColumnTransformer` and `Pipeline`.
+
+This prevents preprocessing statistics from being learned from the test set.
+
+Evaluation metrics include:
+
+- Accuracy
+- ROC-AUC
+- PR-AUC
+- Precision
+- Recall
+- F1
+- Confusion matrix
+
+Because attrition is imbalanced, ROC-AUC, PR-AUC, recall and F1 are reported alongside accuracy rather than relying on accuracy alone.
+
+### 5. Explainability
+
+The Random Forest is explained with **TreeSHAP** on held-out test observations.
+
+The project reports:
+
+- global mean absolute SHAP importance
+- feature importance aggregated back to the original HR variables
+- an example local prediction explanation
+
+SHAP explanations describe how features contribute to the model's predictions. They are not causal explanations of employee behavior.
+
+### 6. Business impact
+
+Replacement-cost exposure is calculated as:
+
+[
+Replacement Cost = Annual Income 	imes Replacement Cost Multiplier
+]
+
+The default multiplier is **1.5× annual salary**.
+
+The project reports the estimated replacement-cost exposure associated with observed departures.
+
+It then performs illustrative retention scenarios:
+
+- 10% effectiveness
+- 20% effectiveness
+- 30% effectiveness
+- 40% effectiveness
+- 50% effectiveness
+
+For each scenario:
+
+[
+Avoided Cost Estimate =
+Observed Replacement Cost Exposure
+	imes
+Scenario Effectiveness
+]
+
+These are **hypothetical sensitivity scenarios**, not observed or guaranteed savings.
+
+
+
+## Validated Results
+
+The following results were produced by the project pipeline in GitHub Actions after the preprocessing and duplicate-feature fixes. The validation run completed successfully with **21 tests passed**.
+
+### Workforce findings
+
+| Metric | Validated result |
+|---|---:|
+| Employee records | 1,470 |
+| Overall observed attrition | 16.1% |
+| Overtime attrition | 30.5% |
+| Non-overtime attrition | 10.4% |
+| Overtime / non-overtime observed attrition-rate ratio | 2.93× |
+
+The 2.93× figure is a comparison of observed rates in this benchmark dataset; it should not be interpreted as a causal effect of overtime.
+
+### Held-out model performance
+
+| Model | ROC-AUC | PR-AUC | Recall | F1 |
+|---|---:|---:|---:|---:|
+| Logistic Regression | 0.783 | 0.539 | 0.660 | 0.453 |
+| Random Forest | 0.767 | 0.425 | 0.362 | 0.382 |
+
+On this benchmark and current configuration, **Logistic Regression performs better than Random Forest across the listed ROC-AUC, PR-AUC, recall and F1 measures**. The project therefore does not present Random Forest as the superior predictive model simply because it is more complex.
+
+### Random Forest — top SHAP features
+
+| Rank | Feature | Mean absolute SHAP value |
+|---|---|---:|
+| 1 | OverTime | 0.08178 |
+| 2 | JobRole | 0.03478 |
+| 3 | MaritalStatus | 0.03189 |
+| 4 | Age | 0.03017 |
+| 5 | Department | 0.02571 |
+
+These values describe model contribution on the held-out observations. They do not establish that any listed feature causes employee attrition.
+
+### Business impact
+
+The validated observed replacement-cost exposure for employees recorded as `Attrition = Yes` is **$20,421,738**, using the configured **1.5× annual salary** analytical assumption.
+
+Illustrative sensitivity scenarios:
+
+| Hypothetical retention effectiveness | Avoided-cost estimate | Remaining exposure estimate |
+|---:|---:|---:|
+| 10% | $2,042,174 | $18,379,565 |
+| 20% | $4,084,348 | $16,337,390 |
+| 30% | $6,126,521 | $14,295,217 |
+| 40% | $8,168,695 | $12,253,043 |
+| 50% | $10,210,869 | $10,210,869 |
+
+These are **hypothetical sensitivity scenarios**, not observed or guaranteed savings.
+
+## Validation and Reproducibility
+
+GitHub Actions runs the project's test suite and full pipeline on the rebuild branch.
+
+The validated run confirmed:
+
+- **21 automated tests passed**
+- the full `python pipeline.py` execution completed successfully
+- model metrics and financial outputs are generated from current pipeline results rather than manually calibrated report values
+
+## Key Business Questions
+
+The analysis is designed to answer questions such as:
+
+- What is the observed attrition rate?
+- How does observed attrition differ by overtime status?
+- Which departments and job roles have higher observed attrition?
+- How does attrition vary across tenure bands?
+- Which variables contribute most strongly to the Random Forest's predictions?
+- What replacement-cost exposure is associated with observed departures?
+- How would different hypothetical retention-effectiveness levels translate into avoided-cost estimates?
+
+## Repository Structure
+
+```text
 HR Attrition Analysis and Retention Cost Modeling/
-├── pipeline.py                 # Main orchestration pipeline
-├── src/
-│   ├── data_loader.py          # Data loading with validation
-│   ├── data_validator.py       # Data quality checks
-│   ├── pii_masker.py           # PII anonymization engine
-│   ├── feature_engineer.py     # Feature creation (ReplacementCost, etc.)
-│   ├── exploratory_analysis.py # EDA and segmentation analysis
-│   ├── attrition_model.py      # ML model with SHAP explainability
-│   ├── business_impact.py      # Financial impact calculations
-│   └── report_generator.py     # Report and visualization generation
-├── tests/
-│   └── test_pipeline.py        # Unit tests (pytest)
-├── reports/                    # Generated outputs
-│   ├── executive_summary.txt
-│   ├── retention_plan.txt
-│   ├── key_metrics.json
-│   └── *.csv                   # Segmented analysis files
-├── data/                       # Processed data storage
 ├── HR-Employee-Attrition-Dataset.csv
 ├── README.md
-└── requirements.txt
+├── pipeline.py
+├── requirements.txt
+├── src/
+│   ├── attrition_model.py
+│   ├── business_impact.py
+│   ├── data_loader.py
+│   ├── data_validator.py
+│   ├── exploratory_analysis.py
+│   ├── feature_engineer.py
+│   ├── pii_masker.py
+│   └── report_generator.py
+├── reports/
+└── tests/
 ```
 
----
+## Running the Project
 
-## Quick Start
-
-### Prerequisites
+From this project directory:
 
 ```bash
 pip install -r requirements.txt
-```
-
-### Run Full Pipeline
-
-```bash
-cd "HR Attrition Analysis and Retention Cost Modeling"
 python pipeline.py
 ```
 
-### Run Tests
+Generated reports are written to `reports/`.
 
-```bash
-pytest tests/test_pipeline.py -v
-```
+## Outputs
 
----
+The pipeline generates:
 
-## Key Features
+- `executive_summary.txt`
+- `retention_plan.txt`
+- `data_dictionary.txt`
+- `key_metrics.json`
+- segment-level attrition CSV files
+- `model_comparison.csv`
+- dynamic analysis visualizations
 
-### 1. Data Quality and PII Masking Engine
+## Limitations
 
-- **Schema Validation**: Ensures all required columns are present
-- **Missing Value Detection**: Identifies and handles null values
-- **PII Anonymization**: SHA-256 hashing of EmployeeNumber for privacy compliance
-- **Audit Logging**: Tracks all masking operations for compliance
+- The IBM HR dataset is a benchmark dataset and is not evidence about any specific employer's workforce.
+- The analysis is observational; associations do not establish causation.
+- Replacement-cost estimates depend on the selected salary multiplier.
+- Retention scenarios are sensitivity estimates rather than measured intervention outcomes.
+- Predictive probabilities are not guarantees that an employee will leave.
+- Any operational HR use would require additional validation, monitoring, fairness assessment and organizational context.
+- Model predictions should not be used as the sole basis for employment decisions.
 
-```python
-from src.pii_masker import PIIMasker
+## Technology
 
-masker = PIIMasker()
-df_masked = masker.mask(df, columns=['EmployeeNumber'], strategy='hash')
-# Employee numbers transformed: 1 -> EMP_a3f8c2d1e4b5
-```
+- Python
+- pandas
+- NumPy
+- scikit-learn
+- SHAP
+- Matplotlib
+- pytest
 
-### 2. Exploratory Data Analysis
+## Project Classification
 
-Segmented attrition analysis by:
-- **OverTime Status**: Primary driver of attrition
-- **Department**: R&D, Sales, HR comparison
-- **Job Role**: 9 different roles analyzed
-- **Tenure Bucket**: 0-1yr, 1-3yr, 3-5yr, 5-10yr, 10-20yr, 20+yr
-
-Key Finding: Employees working overtime have a **31% attrition rate** compared to **11%** for non-overtime workers.
-
-### 3. Feature Engineering
-
-Engineered features include:
-- `ReplacementCost`: AnnualIncome x 1.5 (industry standard multiplier)
-- `AnnualIncome`: MonthlyIncome x 12
-- `IsOverTime`: Binary flag for overtime status
-- `TenureBucket`: Categorical tenure grouping
-- `PromotionStagnation`: Flag for no promotion in 3+ years
-- `LowSatisfactionCount`: Composite satisfaction metric
-
-### 4. Predictive Modeling with SHAP Explainability
-
-- **Model**: Random Forest Classifier
-- **Accuracy**: ~85%
-- **AUC-ROC**: ~0.86
-- **Explainability**: SHAP values identify top attrition drivers
-
-Top 5 Attrition Drivers (SHAP Analysis):
-1. OverTime
-2. YearsAtCompany
-3. MonthlyIncome
-4. JobLevel
-5. YearsSinceLastPromotion
-
-### 5. Business Impact Quantification
-
-The pipeline calculates real dollar figures:
-
-```
-Total Replacement Cost Exposure: $16,700,000
-  - Based on 1.5x annual salary multiplier
-  - Applied to all employees who left (Attrition=Yes)
-
-Potential Savings with Retention Plan: $10,600,000
-  - Represents 63.5% reduction in replacement costs
-  - Achieved through targeted interventions
-```
-
----
-
-## 5-Point Retention Plan
-
-Based on SHAP analysis and cost modeling, the following initiatives are recommended:
-
-| Priority | Initiative | Expected Annual Savings | Timeline |
-|----------|-----------|------------------------|----------|
-| 1 | Implement Overtime Reduction Program | $5.2M | 0-3 months |
-| 2 | Career Development and Promotion Pathway Program | $2.8M | 3-6 months |
-| 3 | Targeted Retention Bonuses for High-Risk Tenure Segments | $1.5M | Immediate |
-| 4 | Work-Life Balance Enhancement Initiative | $800K | 3-9 months |
-| 5 | Manager Training on Retention Risk Identification | $300K | 1-3 months |
-| **Total** | | **$10.6M** | |
-
----
-
-## Technical Highlights
-
-### Object-Oriented Architecture
-
-Each component is a reusable class with clear interfaces:
-
-```python
-from src.data_loader import DataLoader
-from src.data_validator import DataValidator
-from src.pii_masker import PIIMasker
-from src.feature_engineer import FeatureEngineer
-from src.exploratory_analysis import ExploratoryAnalysis
-from src.attrition_model import AttritionModel
-from src.business_impact import BusinessImpactAnalyzer
-from src.report_generator import ReportGenerator
-```
-
-### Unit Testing
-
-Comprehensive pytest coverage for:
-- Data loading and validation
-- PII masking strategies (hash, redact, pseudonymize)
-- Feature engineering calculations
-- Integration tests for full pipeline
-
-### Data Privacy Compliance
-
-- All EmployeeNumber values are hashed before analysis
-- Audit logs track all transformations
-- No raw PII in generated reports
-
----
-
-## Output Files
-
-After running the pipeline, the `reports/` directory contains:
-
-| File | Description |
-|------|-------------|
-| `executive_summary.txt` | Business-facing summary with key metrics |
-| `retention_plan.txt` | Detailed 5-point plan with rationale |
-| `data_dictionary.txt` | Column descriptions and metadata |
-| `key_metrics.json` | Programmatic access to all metrics |
-| `attrition_by_department.csv` | Segmented analysis |
-| `attrition_by_job_role.csv` | Segmented analysis |
-| `attrition_by_overtime.csv` | Segmented analysis |
-| `attrition_by_tenure.csv` | Segmented analysis |
-| `fig*.png` | Visualization charts (if matplotlib available) |
-
----
-
-## Dataset Information
-
-**Source**: IBM HR Employee Attrition Dataset  
-**Records**: 1,470 employees  
-**Features**: 35 columns including demographics, job details, and satisfaction scores
-
-Key Columns:
-- `Attrition`: Target variable (Yes/No)
-- `OverTime`: Primary risk factor (Yes/No)
-- `MonthlyIncome`: Basis for replacement cost calculation
-- `YearsAtCompany`: Tenure metric
-- `Department`: Business unit segmentation
-- `JobRole`: Position classification
-
----
-
-## Portfolio Context
-
-This project belongs to the **Data Analysis** portfolio track, demonstrating:
-
-1. **Exploratory Data Analysis**: Comprehensive segmentation and pattern discovery
-2. **Business Impact Quantification**: Dollar-figure cost modeling
-3. **PII Handling**: Privacy-compliant data processing
-4. **Predictive Insights**: ML-enhanced decision support (SHAP explainability)
-5. **Executive Communication**: Clear, actionable recommendations
-
-While this project uses advanced techniques (Random Forest, SHAP values), it is positioned as a Data Analysis project because the primary deliverable is **actionable business insight**, not a production ML system.
-
----
-
-## Requirements
-
-```
-pandas>=1.5.0
-numpy>=1.23.0
-scikit-learn>=1.2.0
-matplotlib>=3.6.0
-pytest>=7.2.0
-```
-
----
-
-## Author
-
-**OGHENEOCHUKO EMMANUEL OGIDIAGBA**
-
-Built as a flagship portfolio piece demonstrating Senior Data Analyst capabilities in:
-- User behavior and churn analysis
-- Friction point identification
-- Business impact translation
-- Data privacy compliance
-- Cross-functional stakeholder communication
-
----
-
-## License
-
-This project is for portfolio demonstration purposes. The IBM HR Attrition dataset is publicly available for research and educational use.
+**Primary category:** Data Analysis  
+**Predictive component:** Supervised Machine Learning  
+**Explainability:** TreeSHAP  
+**Business layer:** Replacement-cost exposure and scenario analysis
