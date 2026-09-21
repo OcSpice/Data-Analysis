@@ -26,7 +26,15 @@ The project reports delay patterns and hotspots. It does not claim causal root c
 Synthetic data; analyst-defined score weights; scenario assumptions require domain validation; descriptive associations do not establish causality.
 
 ## Run
+
+`src/main.py` regenerates the deterministic synthetic dataset (seed 42) before analysis, so the pipeline always runs against the current generator logic.
+
+```bash
+python src/main.py
+```
+
+To generate only the dataset for inspection:
+
 ```bash
 python src/generate_data.py
-python src/main.py
 ```
