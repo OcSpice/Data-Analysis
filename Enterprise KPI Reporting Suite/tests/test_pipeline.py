@@ -90,6 +90,26 @@ class TestDataLoader:
         report = loader.check_data_quality()
         assert report["consistency_issues"]["margin_mismatch"] == 1
 
+    def test_quality_catches_funnel_violations(self, sample_df, tmp_path):
+        sample_df.loc[0, "Deals_Closed"] = 25
+        sample_df.loc[1, "SQL_Count"] = 200
+        path = tmp_path / "funnel_bad.csv"
+        sample_df.to_csv(path, index=False)
+        loader = DataLoader(str(path))
+        loader.load()
+        report = loader.check_data_quality()
+        assert report["funnel_violations"]["deals_exceed_leads"] == 1
+        assert report["funnel_violations"]["sql_exceeds_mql"] == 1
+
+    def test_quality_catches_date_dimension_mismatch(self, sample_df, tmp_path):
+        sample_df.loc[0, "Month"] = "Dec"
+        path = tmp_path / "date_bad.csv"
+        sample_df.to_csv(path, index=False)
+        loader = DataLoader(str(path))
+        loader.load()
+        report = loader.check_data_quality()
+        assert report["validity_issues"]["date_dimension_mismatch"] == 1
+
 
 class TestKPIEngine:
     def test_department_kpis_use_weighted_margin(self, sample_df):
