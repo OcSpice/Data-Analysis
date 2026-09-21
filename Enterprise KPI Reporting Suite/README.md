@@ -1,177 +1,229 @@
 # Enterprise KPI Reporting Suite
 
 **Author:** OGHENEOCHUKO EMMANUEL OGIDIAGBA  
-**Portfolio Track:** Data Analysis  
-**Data Scope:** ~38,000 records | $1.4 billion revenue scope
+**Portfolio Track:** Data Analysis
 
 ## Project Overview
 
-This repository contains a production-ready Python application for enterprise-wide KPI tracking and executive reporting. It demonstrates senior-level data analysis capabilities including cross-functional performance tracking, executive-level data visualization, and robust data quality assurance.
+An executive-style KPI reporting application demonstrating cross-functional
+performance monitoring across Finance, Sales, HR, Operations, and regional
+dimensions.
 
-The suite tracks Finance, Sales, HR, and Operations metrics side by side against strict business targets, providing the kind of interactive dashboard that CFOs actually open every Monday morning.
+The project focuses on an auditable analytics workflow rather than a single
+composite performance score:
 
-## Features
+**CSV → schema/data-quality checks → KPI aggregation → target variance →
+management exceptions → visual reports → Streamlit dashboard**
 
-### 1. Modular Architecture
-- **Object-oriented design** with clear separation of concerns
-- **Data loading and validation** module with schema enforcement
-- **KPI analytics engine** calculating 12 core targets across 4 departments
-- **Visualization module** generating insight-driven charts
-- **Interactive Streamlit dashboard** for executive consumption
+The included dataset is a synthetic portfolio dataset. Reported revenue,
+record counts, targets, and performance flags therefore describe this dataset
+and its analytical assumptions; they are not claims about a real company.
 
-### 2. Data Quality and Anonymization
-- Comprehensive data quality scoring
-- Schema validation (e.g., Revenue must be >= Cost)
-- Missing value handling with multiple strategies
-- Employee ID anonymization using SHA-256 hashing for privacy compliance
+## What the analysis does
 
-### 3. KPI Analytics Engine
-Calculates department-specific health scores based on 12 core targets:
+### 1. KPI aggregation
 
-| Department | Metrics | Targets |
-|------------|---------|---------|
-| Finance | Margin_Pct, Revenue vs Cost | Margin >= 40%, Revenue >= Cost |
-| Sales | LTV_CAC_Ratio, Conv_Rate_Pct, Deals_Closed | LTV/CAC >= 3.0, Conv Rate >= 15% |
-| HR | Attrition_Pct, Productivity_Pct, Training_Hrs | Attrition <= 12%, Productivity >= 70% |
-| Operations | SLA_Met, Uptime_Pct, Resolution_Hrs | Uptime >= 99.5%, Resolution <= 12 hrs |
+The analytical engine calculates:
 
-### 4. Automated Reporting
-- Revenue vs Cost trend charts
-- Departmental target achievement heatmaps
-- LTV to CAC ratio distributions
-- Regional performance comparisons
-- Quarterly trend analysis
-- Executive summary JSON exports with author metadata
+- Revenue, cost, gross margin, and revenue-to-cost ratio
+- Weighted gross margin percentage
+- Sales conversion derived from deals closed and leads generated
+- LTV/CAC ratio
+- Attrition, productivity, and training metrics
+- SLA attainment, resolution time, and uptime
+- Regional and quarterly performance
 
-### 5. Persistent Metadata
-All generated reports and JSON metrics include author attribution ("OGHENEOCHUKO EMMANUEL OGIDIAGBA") as class-level constants, ensuring metadata persists across pipeline re-runs.
+Where aggregation can change the meaning of a KPI, the engine avoids a simple
+mean. For example, department margin is calculated as total gross margin
+divided by total revenue, and conversion is derived from aggregate deals and
+leads.
 
-## Directory Structure
+### 2. Target and variance analysis
 
-```
+The project uses department-specific **illustrative management thresholds**.
+They are explicitly treated as portfolio assumptions rather than universal
+industry benchmarks.
+
+| Department | KPI | Direction | Illustrative threshold |
+|---|---|---:|---:|
+| Finance | Margin % | ≥ | 40% |
+| Finance | Revenue / Cost | ≥ | 1.0 |
+| Sales | LTV / CAC | ≥ | 3.0 |
+| Sales | Conversion % | ≥ | 15% |
+| Sales | Deals Closed | ≥ | 5 |
+| HR | Attrition % | ≤ | 12% |
+| HR | Productivity % | ≥ | 70% |
+| HR | Training Hours | ≥ | 20 |
+| Operations | SLA Met | ≥ | 1.0 |
+| Operations | Uptime % | ≥ | 99.5% |
+| Operations | Resolution Hours | ≤ | 12 |
+
+For each KPI the application reports:
+
+- Actual
+- Target
+- Direction
+- Absolute gap
+- Relative gap vs target
+- Meets Target / Below Target / No Data
+
+No heterogeneous KPI values are averaged into a single department
+"health score".
+
+### 3. Management exceptions
+
+Below-target KPI rows are converted into a management exception table with
+an explicit rule-based priority:
+
+- **High:** absolute relative gap ≥ 10%
+- **Medium:** absolute relative gap ≥ 5% and < 10%
+- **Low:** absolute relative gap < 5%
+
+This priority is an analytical rule for the portfolio project, not a claim
+about business risk.
+
+The project also reports areas with the highest **below-target exposure** using
+the dataset's source Status field. This is exposure reporting, not a
+composite performance ranking.
+
+### 4. Period-over-period analysis
+
+Quarterly reporting includes:
+
+- Revenue and cost
+- Gross margin
+- Revenue-to-cost ratio
+- Selected operating KPIs
+- Revenue percentage change from the previous quarter
+- Margin percentage-point change from the previous quarter
+
+The application does not invent a trend when the source data cannot support
+one.
+
+### 5. Data quality framework
+
+Data quality is separated into four dimensions:
+
+1. **Completeness** — missing-cell coverage
+2. **Uniqueness** — unique Record_ID coverage
+3. **Validity** — domain/range and business-rule checks
+4. **Consistency** — reconciliation checks such as:
+   - Gross Margin = Revenue - Cost
+   - Margin % agrees with Gross Margin / Revenue
+   - LTV/CAC agrees with LTV / CAC
+
+An equal-weight overall quality score is shown only as a transparent summary
+of these four dimensions.
+
+### 6. Privacy
+
+Employee IDs can be hashed with SHA-256 through the anonymization module before
+public sharing or downstream reporting.
+
+## Dashboard
+
+The Streamlit application contains:
+
+1. **Executive Overview**
+2. **Finance**
+3. **Sales**
+4. **People**
+5. **Operations**
+6. **Regional Performance**
+7. **Target & Variance Analysis**
+8. **Data Quality**
+
+The target analysis view uses target-relative variance rather than min-max
+normalization. This prevents a KPI from appearing favorable merely because it
+is high relative to other departments when it is still below its business
+threshold.
+
+## Data model perspective
+
+The current CSV is intentionally wide for portfolio convenience. A production
+BI implementation could normalize it into:
+
+- **Dim Date**
+- **Dim Department**
+- **Dim Region**
+- **Dim Product**
+- **Dim Employee**
+- **Dim Cost Center**
+- **Fact Performance**
+
+This project demonstrates the analytical logic that could sit behind that
+dimensional model.
+
+## Repository structure
+
+~~~
 Enterprise KPI Reporting Suite/
 ├── src/
-│   ├── __init__.py           # Package initialization with author metadata
-│   ├── data_loader.py        # CSV loading, schema validation, quality checks
-│   ├── anonymizer.py         # PII anonymization for privacy compliance
-│   ├── kpi_engine.py         # KPI calculation engine with 12 core targets
-│   └── visualization.py      # Chart generation and report export
+│   ├── __init__.py
+│   ├── data_loader.py        # schema + data quality dimensions
+│   ├── anonymizer.py         # Employee ID hashing/masking
+│   ├── kpi_engine.py         # KPI, target variance, trends, exceptions
+│   └── visualization.py      # Plotly reports
 ├── tests/
-│   └── test_pipeline.py      # Comprehensive pytest unit tests
+│   └── test_pipeline.py      # analytical and data-quality tests
 ├── data/
-│   └── KPI_Suite_Data.csv    # Source dataset (~38,000 records)
-├── reports/                   # Generated visualizations and JSON metrics
-├── dashboard.py              # Streamlit interactive dashboard
-├── main.py                   # Main pipeline runner
-├── requirements.txt          # Python dependencies
-└── README.md                 # This file
-```
+│   └── KPI_Suite_Data.csv    # synthetic source dataset
+├── reports/                  # generated HTML/JSON outputs
+├── dashboard.py              # Streamlit application
+├── main.py                   # pipeline runner
+├── requirements.txt
+└── README.md
+~~~
 
-## Installation
+## Run locally
 
-### Prerequisites
-- Python 3.8 or higher
-- pip package manager
+### Install
 
-### Setup
+~~~
+cd "Enterprise KPI Reporting Suite"
+pip install -r requirements.txt
+~~~
 
-1. Clone or navigate to the project directory:
-   ```bash
-   cd "Enterprise KPI Reporting Suite"
-   ```
+### Run the pipeline
 
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Verify installation:
-   ```bash
-   python -c "from src.data_loader import DataLoader; print('Installation successful')"
-   ```
-
-## Usage
-
-### Running the Full Pipeline
-
-Execute the main pipeline to generate all reports:
-
-```bash
+~~~
 python main.py
-```
+~~~
 
-This will:
-1. Load and validate the dataset
-2. Run data quality checks
-3. Calculate all KPIs and health scores
-4. Generate visualizations in the `reports/` folder
-5. Export executive metrics JSON
+The pipeline validates the dataset, calculates KPIs and exceptions, generates
+visual reports, and writes reports/executive_metrics.json.
 
-### Running the Interactive Dashboard
+### Run the dashboard
 
-Launch the Streamlit dashboard for interactive exploration:
-
-```bash
+~~~
 streamlit run dashboard.py
-```
+~~~
 
-The dashboard provides:
-- **Executive Overview**: Key metrics, trends, and department health scores
-- **Department Analysis**: Drill-down into specific department performance
-- **Regional Performance**: Geographic comparison and underperforming areas
-- **Target Achievement**: Heatmaps and target reference
-- **Data Quality**: Quality scores and anonymization demo
+### Run tests
 
-### Running Unit Tests
-
-Execute the test suite:
-
-```bash
+~~~
 pytest tests/test_pipeline.py -v
-```
+~~~
 
-Test coverage includes:
-- Data loading and validation
-- Anonymization functions
-- KPI calculations
-- Report generation
-- Data integrity checks
+## Limitations and assumptions
 
-## Dataset Description
+- The source dataset is synthetic.
+- Management thresholds are illustrative portfolio assumptions.
+- The source Status field is treated as an observed dataset label; the
+  project does not claim that it was independently derived from all 11 KPI
+  thresholds.
+- Wide-table data modeling is used for simplicity; a dimensional model would
+  be preferable for a production BI environment.
+- KPI averages are not automatically equivalent to business-weighted measures;
+  the engine uses weighted/derived calculations where appropriate.
+- No causal conclusions are drawn from the KPI relationships.
+- Exception priority is a transparent analytical rule, not a risk-management
+  framework.
 
-The dataset contains approximately 38,000 enterprise records representing a $1.4 billion revenue scope. Key columns include:
+## Author
 
-- **Identifiers**: Record_ID, Date, Year, Month, Quarter, Department, Region
-- **Financial**: Revenue, Cost, Gross_Margin, Margin_Pct
-- **Sales**: Deals_Closed, Leads_Generated, Conv_Rate_Pct, CAC, LTV, LTV_CAC_Ratio
-- **HR**: Headcount, Attrition_Pct, Training_Hrs, Productivity_Pct
-- **Operations**: SLA_Met, Ticket_Volume, Resolution_Hrs, Uptime_Pct
-- **Status**: Above Target / Below Target flags
+**OGHENEOCHUKO EMMANUEL OGIDIAGBA**
 
-## Key Business Insights
-
-The pipeline quantifies enterprise performance against 12 core targets across four departments:
-
-1. **Finance Health**: Overall margin percentage and revenue-to-cost ratio
-2. **Sales Efficiency**: LTV to CAC ratio indicating customer acquisition efficiency
-3. **HR Stability**: Attrition rates and productivity metrics
-4. **Operations Excellence**: SLA compliance and system uptime
-
-Records flagged as "Below Target" are identified for executive remediation, with gap analysis quantifying revenue or efficiency shortfalls.
-
-## Author Attribution
-
-This project was developed by **OGHENEOCHUKO EMMANUEL OGIDIAGBA** as part of a comprehensive Data Analysis portfolio. The author metadata is embedded as class-level constants throughout the codebase and appears in all generated reports.
-
-## License
-
-This project is provided as a portfolio demonstration piece. All rights reserved.
-
-## Contact
-
-For questions about this project or portfolio inquiries, please contact the author.
-
----
-
-*Enterprise KPI Reporting Suite - Data Analysis Portfolio Track*  
-*Author: OGHENEOCHUKO EMMANUEL OGIDIAGBA*
+Data Analysis portfolio project demonstrating Python, pandas, KPI design,
+data-quality validation, target variance analysis, visualization, testing,
+and Streamlit reporting.
