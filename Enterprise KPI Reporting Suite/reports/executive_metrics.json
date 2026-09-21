@@ -1,70 +1,354 @@
 {
   "author": "OGHENEOCHUKO EMMANUEL OGIDIAGBA",
-  "generated_at": "2026-09-20T15:48:43.516541",
+  "generated_at": "2026-09-21T15:24:11.851Z",
   "data_scope": {
     "total_records": 38000,
     "total_revenue": 1402428009.31,
     "total_cost": 888601361.25,
     "total_margin": 513826648.06,
-    "overall_margin_pct": 36.64,
-    "revenue_scope_label": "$1.4 billion revenue scope"
+    "overall_margin_pct": 36.64
   },
   "performance": {
-    "records_below_target": 15737,
-    "below_target_percentage": 41.41,
-    "records_above_target": 22263
+    "reported_below_target_records": 15737,
+    "reported_below_target_percentage": 41.41,
+    "management_exception_count": 6
   },
-  "department_health_scores": {
-    "Finance": 99.89,
-    "Operations": 84.36,
-    "Sales": 79.85,
-    "HR": 95.15
-  },
-  "underperforming_areas": [
-    {
-      "type": "Cost_Center",
-      "identifier": "CC-500",
-      "below_target_rate": 42.22,
-      "revenue": 281753704.87,
-      "cost": 179192340.01,
-      "revenue_gap": 102561364.86000001,
-      "margin_pct": 36.47146437994723
-    },
-    {
-      "type": "Region",
-      "identifier": "North America",
-      "below_target_rate": 42.09,
-      "revenue": 394406337.72,
-      "cost": 249755346.36,
-      "revenue_gap": 144650991.36,
-      "margin_pct": 36.720576438765036
-    },
-    {
-      "type": "Cost_Center",
-      "identifier": "CC-400",
-      "below_target_rate": 41.86,
-      "revenue": 281514295.14,
-      "cost": 177531429.66,
-      "revenue_gap": 103982865.47999999,
-      "margin_pct": 36.9048176911939
-    }
-  ],
   "departments_analyzed": [
+    "Customer Success",
     "Finance",
-    "Operations",
-    "Sales",
-    "IT",
-    "Marketing",
-    "Legal",
     "HR",
-    "Customer Success"
+    "IT",
+    "Legal",
+    "Marketing",
+    "Operations",
+    "Sales"
   ],
   "regions_analyzed": [
     "Asia Pacific",
     "Europe",
     "Latin America",
-    "North America",
-    "MEA"
+    "MEA",
+    "North America"
   ],
-  "report_generated_at": "2026-09-20T15:48:44.174473"
+  "data_quality": {
+    "total_records": 38000,
+    "total_columns": 35,
+    "missing_values": {},
+    "duplicate_records": 0,
+    "invalid_revenue_cost": 0,
+    "funnel_violations": {
+      "deals_exceed_leads": 2402,
+      "sql_exceeds_mql": 5249
+    },
+    "negative_values": {},
+    "validity_issues": {
+      "revenue_below_cost": 0,
+      "deals_exceed_leads": 2402,
+      "sql_exceeds_mql": 5249,
+      "out_of_range_Conv_Rate_Pct": 2402,
+      "invalid_sla_flag": 0,
+      "date_dimension_mismatch": 0
+    },
+    "consistency_issues": {
+      "margin_mismatch": 0,
+      "margin_pct_mismatch": 0,
+      "ltv_cac_mismatch": 0
+    },
+    "dimensions": {
+      "completeness_pct": 100,
+      "uniqueness_pct": 100,
+      "validity_pct": 73.54,
+      "consistency_pct": 100
+    },
+    "quality_score": 93.39
+  },
+  "target_variance": [
+    {
+      "Department": "Finance",
+      "KPI": "Margin_Pct",
+      "Actual": 39.84,
+      "Target": 40,
+      "Direction": "gte",
+      "Unit": "%",
+      "status": "Below Target",
+      "gap": -0.16,
+      "attainment_pct": 99.6,
+      "relative_gap_pct": -0.4,
+      "Description": "Gross margin percentage"
+    },
+    {
+      "Department": "Finance",
+      "KPI": "Revenue_vs_Cost",
+      "Actual": 1.66,
+      "Target": 1,
+      "Direction": "gte",
+      "Unit": "ratio",
+      "status": "Meets Target",
+      "gap": 0.66,
+      "attainment_pct": 166.22,
+      "relative_gap_pct": 66.22,
+      "Description": "Revenue-to-cost ratio"
+    },
+    {
+      "Department": "Sales",
+      "KPI": "LTV_CAC_Ratio",
+      "Actual": 4.5,
+      "Target": 3,
+      "Direction": "gte",
+      "Unit": "ratio",
+      "status": "Meets Target",
+      "gap": 1.5,
+      "attainment_pct": 150.03,
+      "relative_gap_pct": 50.03,
+      "Description": "Lifetime value to customer acquisition cost"
+    },
+    {
+      "Department": "Sales",
+      "KPI": "Conv_Rate_Pct",
+      "Actual": 19.78,
+      "Target": 15,
+      "Direction": "gte",
+      "Unit": "%",
+      "status": "Meets Target",
+      "gap": 4.78,
+      "attainment_pct": 131.87,
+      "relative_gap_pct": 31.87,
+      "Description": "Lead-to-deal conversion rate"
+    },
+    {
+      "Department": "Sales",
+      "KPI": "Deals_Closed",
+      "Actual": 1.98,
+      "Target": 5,
+      "Direction": "gte",
+      "Unit": "deals",
+      "status": "Below Target",
+      "gap": -3.02,
+      "attainment_pct": 39.55,
+      "relative_gap_pct": -60.45,
+      "Description": "Closed deals per reporting record"
+    },
+    {
+      "Department": "HR",
+      "KPI": "Attrition_Pct",
+      "Actual": 14.04,
+      "Target": 12,
+      "Direction": "lte",
+      "Unit": "%",
+      "status": "Below Target",
+      "gap": 2.04,
+      "attainment_pct": 85.46,
+      "relative_gap_pct": -17.01,
+      "Description": "Observed attrition percentage"
+    },
+    {
+      "Department": "HR",
+      "KPI": "Productivity_Pct",
+      "Actual": 77.94,
+      "Target": 70,
+      "Direction": "gte",
+      "Unit": "%",
+      "status": "Meets Target",
+      "gap": 7.94,
+      "attainment_pct": 111.35,
+      "relative_gap_pct": 11.35,
+      "Description": "Productivity percentage"
+    },
+    {
+      "Department": "HR",
+      "KPI": "Training_Hrs",
+      "Actual": 23.88,
+      "Target": 20,
+      "Direction": "gte",
+      "Unit": "hours",
+      "status": "Meets Target",
+      "gap": 3.88,
+      "attainment_pct": 119.41,
+      "relative_gap_pct": 19.41,
+      "Description": "Training hours per reporting record"
+    },
+    {
+      "Department": "Operations",
+      "KPI": "SLA_Met",
+      "Actual": 0.87,
+      "Target": 1,
+      "Direction": "gte",
+      "Unit": "rate",
+      "status": "Below Target",
+      "gap": -0.13,
+      "attainment_pct": 86.92,
+      "relative_gap_pct": -13.08,
+      "Description": "Share of records meeting SLA"
+    },
+    {
+      "Department": "Operations",
+      "KPI": "Uptime_Pct",
+      "Actual": 99.08,
+      "Target": 99.5,
+      "Direction": "gte",
+      "Unit": "%",
+      "status": "Below Target",
+      "gap": -0.42,
+      "attainment_pct": 99.58,
+      "relative_gap_pct": -0.42,
+      "Description": "System/service uptime"
+    },
+    {
+      "Department": "Operations",
+      "KPI": "Resolution_Hrs",
+      "Actual": 18.02,
+      "Target": 12,
+      "Direction": "lte",
+      "Unit": "hours",
+      "status": "Below Target",
+      "gap": 6.02,
+      "attainment_pct": 66.58,
+      "relative_gap_pct": -50.19,
+      "Description": "Average resolution time"
+    }
+  ],
+  "management_exceptions": [
+    {
+      "Department": "Finance",
+      "KPI": "Margin_Pct",
+      "Actual": 39.84,
+      "Target": 40,
+      "Direction": "gte",
+      "Unit": "%",
+      "status": "Below Target",
+      "gap": -0.16,
+      "attainment_pct": 99.6,
+      "relative_gap_pct": -0.4,
+      "Description": "Gross margin percentage",
+      "Priority": "Low"
+    },
+    {
+      "Department": "Sales",
+      "KPI": "Deals_Closed",
+      "Actual": 1.98,
+      "Target": 5,
+      "Direction": "gte",
+      "Unit": "deals",
+      "status": "Below Target",
+      "gap": -3.02,
+      "attainment_pct": 39.55,
+      "relative_gap_pct": -60.45,
+      "Description": "Closed deals per reporting record",
+      "Priority": "High"
+    },
+    {
+      "Department": "HR",
+      "KPI": "Attrition_Pct",
+      "Actual": 14.04,
+      "Target": 12,
+      "Direction": "lte",
+      "Unit": "%",
+      "status": "Below Target",
+      "gap": 2.04,
+      "attainment_pct": 85.46,
+      "relative_gap_pct": -17.01,
+      "Description": "Observed attrition percentage",
+      "Priority": "High"
+    },
+    {
+      "Department": "Operations",
+      "KPI": "SLA_Met",
+      "Actual": 0.87,
+      "Target": 1,
+      "Direction": "gte",
+      "Unit": "rate",
+      "status": "Below Target",
+      "gap": -0.13,
+      "attainment_pct": 86.92,
+      "relative_gap_pct": -13.08,
+      "Description": "Share of records meeting SLA",
+      "Priority": "High"
+    },
+    {
+      "Department": "Operations",
+      "KPI": "Uptime_Pct",
+      "Actual": 99.08,
+      "Target": 99.5,
+      "Direction": "gte",
+      "Unit": "%",
+      "status": "Below Target",
+      "gap": -0.42,
+      "attainment_pct": 99.58,
+      "relative_gap_pct": -0.42,
+      "Description": "System/service uptime",
+      "Priority": "Low"
+    },
+    {
+      "Department": "Operations",
+      "KPI": "Resolution_Hrs",
+      "Actual": 18.02,
+      "Target": 12,
+      "Direction": "lte",
+      "Unit": "hours",
+      "status": "Below Target",
+      "gap": 6.02,
+      "attainment_pct": 66.58,
+      "relative_gap_pct": -50.19,
+      "Description": "Average resolution time",
+      "Priority": "High"
+    }
+  ],
+  "underperforming_areas": [
+    {
+      "Type": "Cost_Center",
+      "Identifier": "CC-500",
+      "Record_Count": 7580,
+      "Below_Target_Count": 3200,
+      "Revenue": 281753704.8699995,
+      "Cost": 179192340.01000023,
+      "Margin_Pct": 36.40107054042879,
+      "Below_Target_Rate": 42.21635883905013,
+      "Revenue_vs_Cost": 1.572353510503159
+    },
+    {
+      "Type": "Region",
+      "Identifier": "North America",
+      "Record_Count": 10721,
+      "Below_Target_Count": 4512,
+      "Revenue": 394406337.7200012,
+      "Cost": 249755346.3600022,
+      "Margin_Pct": 36.675625497349714,
+      "Below_Target_Rate": 42.085626340826416,
+      "Revenue_vs_Cost": 1.5791707503690282
+    },
+    {
+      "Type": "Cost_Center",
+      "Identifier": "CC-400",
+      "Record_Count": 7597,
+      "Below_Target_Count": 3180,
+      "Revenue": 281514295.1399998,
+      "Cost": 177531429.65999976,
+      "Margin_Pct": 36.93697523540961,
+      "Below_Target_Rate": 41.858628405949716,
+      "Revenue_vs_Cost": 1.5857152487260615
+    },
+    {
+      "Type": "Region",
+      "Identifier": "Latin America",
+      "Record_Count": 4256,
+      "Below_Target_Count": 1778,
+      "Revenue": 155144169.22999966,
+      "Cost": 98151032.22999983,
+      "Margin_Pct": 36.735597143524075,
+      "Below_Target_Rate": 41.776315789473685,
+      "Revenue_vs_Cost": 1.5806677291630145
+    },
+    {
+      "Type": "Cost_Center",
+      "Identifier": "CC-100",
+      "Record_Count": 7676,
+      "Below_Target_Count": 3184,
+      "Revenue": 285682912.5200002,
+      "Cost": 180824084.16999957,
+      "Margin_Pct": 36.70462031664527,
+      "Below_Target_Rate": 41.47993746743096,
+      "Revenue_vs_Cost": 1.5798941486766713
+    }
+  ],
+  "report_generated_at": "2026-09-21T15:24:11.851Z"
 }
