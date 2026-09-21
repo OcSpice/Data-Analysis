@@ -134,7 +134,7 @@ class KPIAnalyticsEngine:
                 "Cost": group["Cost"].sum(),
                 "Gross_Margin": group["Gross_Margin"].sum(),
                 "Margin_Pct": self._weighted_margin(group),
-                "Deals_Closed": group["Deals_Closed"].sum(),
+                "Deals_Closed": group["Deals_Closed"].mean(),
                 "Leads_Generated": group["Leads_Generated"].sum(),
                 "Conv_Rate_Pct": self._safe_ratio(
                     group["Deals_Closed"].sum(), group["Leads_Generated"].sum()
