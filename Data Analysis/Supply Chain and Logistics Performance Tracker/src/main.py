@@ -11,6 +11,7 @@ from typing import Dict, Any
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from data_quality import load_and_validate_data, DataAnonymizer
+from generate_data import generate_dataset
 from analytics_engine import LogisticsAnalyticsEngine
 from visualization import VisualizationEngine
 from report_generator import ReportGenerator
