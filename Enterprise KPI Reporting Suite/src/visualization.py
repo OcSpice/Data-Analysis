@@ -1,389 +1,207 @@
-"""
-Visualization and Dashboard Module for Enterprise KPI Reporting Suite
-Generates insight-driven visualizations and interactive Streamlit dashboard.
+"""Visualization layer for the Enterprise KPI Reporting Suite.
 
-Author: OGHENEOCHUKO EMMANUEL OGIDIAGBA
+Charts are based on actual metrics and centralized target definitions. No
+cross-metric min-max normalization is used because relative magnitude is not
+the same thing as target attainment.
 """
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Dict, List
 
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-from typing import Dict, List, Optional, Tuple
-import logging
-from pathlib import Path
-import json
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 class ReportGenerator:
-    """
-    Generates visualizations and reports for enterprise KPI data.
-    
-    Creates executive-ready charts including:
-    - Revenue vs Cost trends
-    - Departmental target achievement heatmaps
-    - LTV to CAC ratio distributions
-    - Regional performance comparisons
-    
-    Attributes:
-        df (pd.DataFrame): The input dataframe
-        output_dir (Path): Directory for saving reports
-    """
-    
-    # Class-level constant for author metadata
     AUTHOR = "OGHENEOCHUKO EMMANUEL OGIDIAGBA"
-    
-    def __init__(self, df: pd.DataFrame, output_dir: str = 'reports'):
-        """
-        Initialize the Report Generator.
-        
-        Args:
-            df: DataFrame containing KPI data
-            output_dir: Directory path for saving generated reports
-        """
+
+    def __init__(self, df: pd.DataFrame, output_dir: str = "reports", targets=None):
         self.df = df.copy()
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.targets = targets or {}
         self.figures: Dict[str, go.Figure] = {}
-    
+
     def create_revenue_vs_cost_trend(self) -> go.Figure:
-        """
-        Create a time series chart showing Revenue vs Cost trends.
-        
-        Returns:
-            go.Figure: Plotly figure with revenue and cost trends
-        """
-        # Aggregate by date
-        daily_trends = self.df.groupby('Date').agg({
-            'Revenue': 'sum',
-            'Cost': 'sum'
-        }).reset_index()
-        
+        data = self.df.copy()
+        data["Date"] = pd.to_datetime(data["Date"], errors="coerce")
+        trend = (
+            data.dropna(subset=["Date"])
+            .groupby("Date")[["Revenue", "Cost"]]
+            .sum()
+            .reset_index()
+            .sort_values("Date")
+        )
+
         fig = go.Figure()
-        
-        fig.add_trace(go.Scatter(
-            x=daily_trends['Date'],
-            y=daily_trends['Revenue'],
-            mode='lines',
-            name='Revenue',
-            line=dict(color='#2E86AB', width=2),
-            fill='tozeroy',
-            opacity=0.7
-        ))
-        
-        fig.add_trace(go.Scatter(
-            x=daily_trends['Date'],
-            y=daily_trends['Cost'],
-            mode='lines',
-            name='Cost',
-            line=dict(color='#A23B72', width=2),
-            fill='tozeroy',
-            opacity=0.7
-        ))
-        
+        fig.add_trace(go.Scatter(x=trend["Date"], y=trend["Revenue"],
+                                 mode="lines", name="Revenue"))
+        fig.add_trace(go.Scatter(x=trend["Date"], y=trend["Cost"],
+                                 mode="lines", name="Cost"))
         fig.update_layout(
-            title='Revenue vs Cost Trends Over Time',
-            xaxis_title='Date',
-            yaxis_title='Amount ($)',
-            hovermode='x unified',
-            template='plotly_white',
+            title="Revenue vs Cost Over Time",
+            xaxis_title="Date",
+            yaxis_title="Amount ($)",
+            hovermode="x unified",
+            template="plotly_white",
             height=500,
-            legend=dict(x=0, y=1.1, orientation='h')
         )
-        
-        self.figures['revenue_vs_cost_trend'] = fig
-        logger.info("Created Revenue vs Cost trend chart")
-        
+        self.figures["revenue_vs_cost_trend"] = fig
         return fig
-    
+
+    def create_target_variance_heatmap(self, variance_df: pd.DataFrame) -> go.Figure:
+        """Heatmap of target-relative variance, where positive means better."""
+        if variance_df.empty:
+            fig = go.Figure()
+        else:
+            pivot = variance_df.pivot(index="KPI", columns="Department",
+                                      values="relative_gap_pct")
+            fig = px.imshow(
+                pivot,
+                color_continuous_scale="RdYlGn",
+                color_continuous_midpoint=0,
+                aspect="auto",
+                labels={"color": "Gap vs Target (%)"},
+                title="Target Variance by Department",
+            )
+            fig.update_traces(
+                hovertemplate="<b>%{y}</b><br>%{x}<br>Gap vs target: %{z:.2f}%<extra></extra>"
+            )
+        fig.update_layout(template="plotly_white", height=500)
+        self.figures["target_variance_heatmap"] = fig
+        return fig
+
+    # Backward-compatible name used by older callers.
     def create_department_heatmap(self) -> go.Figure:
-        """
-        Create a heatmap showing departmental target achievement.
-        
-        Returns:
-            go.Figure: Plotly heatmap figure
-        """
-        # Calculate achievement metrics by department
-        dept_metrics = self.df.groupby('Department').agg({
-            'Margin_Pct': 'mean',
-            'LTV_CAC_Ratio': 'mean',
-            'Conv_Rate_Pct': 'mean',
-            'Attrition_Pct': 'mean',
-            'Productivity_Pct': 'mean',
-            'Training_Hrs': 'mean',
-            'SLA_Met': 'mean',
-            'Uptime_Pct': 'mean',
-            'Resolution_Hrs': 'mean'
-        }).round(2).T
-        
-        # Normalize values for better visualization
-        normalized = dept_metrics.copy()
-        for col in normalized.columns:
-            col_data = normalized[col]
-            col_min = col_data.min()
-            col_max = col_data.max()
-            if col_max > col_min:
-                normalized[col] = (col_data - col_min) / (col_max - col_min) * 100
-            else:
-                normalized[col] = 50
-        
-        fig = go.Figure(data=go.Heatmap(
-            z=normalized.values,
-            x=normalized.columns,
-            y=normalized.index,
-            colorscale='RdYlGn',
-            text=dept_metrics.values,
-            texttemplate='%{text:.2f}',
-            textfont={"size": 10},
-            hovertemplate='<b>%{y}</b><br>%{x}: %{z:.2f}<extra></extra>'
-        ))
-        
-        fig.update_layout(
-            title='Departmental Target Achievement Heatmap',
-            xaxis_title='Department',
-            yaxis_title='Metric',
-            height=400,
-            template='plotly_white'
-        )
-        
-        self.figures['department_heatmap'] = fig
-        logger.info("Created departmental heatmap")
-        
-        return fig
-    
+        from src.kpi_engine import KPIAnalyticsEngine
+        variance = KPIAnalyticsEngine(self.df).get_department_target_variance()
+        return self.create_target_variance_heatmap(variance)
+
     def create_ltv_cac_distribution(self) -> go.Figure:
-        """
-        Create a distribution chart for LTV to CAC ratio by department.
-        
-        Returns:
-            go.Figure: Plotly box plot figure
-        """
         fig = px.box(
             self.df,
-            x='Department',
-            y='LTV_CAC_Ratio',
-            color='Department',
-            title='LTV to CAC Ratio Distribution by Department',
-            labels={'LTV_CAC_Ratio': 'LTV/CAC Ratio', 'Department': 'Department'},
-            color_discrete_sequence=px.colors.qualitative.Set2
+            x="Department",
+            y="LTV_CAC_Ratio",
+            color="Department",
+            title="LTV to CAC Ratio Distribution",
+            labels={"LTV_CAC_Ratio": "LTV/CAC Ratio"},
         )
-        
-        # Add target line at 3.0
-        fig.add_hline(
-            y=3.0,
-            line_dash="dash",
-            line_color="red",
-            annotation_text="Target: 3.0",
-            annotation_position="top"
-        )
-        
-        fig.update_layout(
-            height=500,
-            template='plotly_white',
-            showlegend=False
-        )
-        
-        self.figures['ltv_cac_distribution'] = fig
-        logger.info("Created LTV/CAC distribution chart")
-        
+        sales_target = self.targets.get("Sales", {}).get("LTV_CAC_Ratio", {}).get("target")
+        if sales_target is not None:
+            fig.add_hline(
+                y=sales_target,
+                line_dash="dash",
+                annotation_text=f"Illustrative target: {sales_target:g}",
+            )
+        fig.update_layout(height=500, template="plotly_white", showlegend=False)
+        self.figures["ltv_cac_distribution"] = fig
         return fig
-    
+
     def create_regional_performance_chart(self) -> go.Figure:
-        """
-        Create a bar chart comparing regional performance.
-        
-        Returns:
-            go.Figure: Plotly bar chart figure
-        """
-        regional_perf = self.df.groupby('Region').agg({
-            'Revenue': 'sum',
-            'Cost': 'sum',
-            'Deals_Closed': 'sum',
-            'Margin_Pct': 'mean'
-        }).reset_index()
-        
-        fig = make_subplots(
-            rows=1, cols=2,
-            subplot_titles=('Revenue by Region', 'Margin % by Region'),
-            specs=[[{"type": "bar"}, {"type": "bar"}]]
+        regional = (
+            self.df.groupby("Region")
+            .agg(
+                Revenue=("Revenue", "sum"),
+                Cost=("Cost", "sum"),
+                Gross_Margin=("Gross_Margin", "sum"),
+                Record_Count=("Record_ID", "count"),
+            )
+            .reset_index()
         )
-        
-        fig.add_trace(
-            go.Bar(
-                x=regional_perf['Region'],
-                y=regional_perf['Revenue'],
-                name='Revenue',
-                marker_color='#2E86AB'
-            ),
-            row=1, col=1
-        )
-        
-        fig.add_trace(
-            go.Bar(
-                x=regional_perf['Region'],
-                y=regional_perf['Margin_Pct'],
-                name='Margin %',
-                marker_color='#F18F01'
-            ),
-            row=1, col=2
-        )
-        
-        fig.update_layout(
-            height=450,
-            template='plotly_white',
-            showlegend=False
-        )
-        
-        fig.update_xaxes(title_text="Region", row=1, col=1)
-        fig.update_xaxes(title_text="Region", row=1, col=2)
-        fig.update_yaxes(title_text="Revenue ($)", row=1, col=1)
-        fig.update_yaxes(title_text="Margin %", row=1, col=2)
-        
-        self.figures['regional_performance'] = fig
-        logger.info("Created regional performance chart")
-        
-        return fig
-    
-    def create_quarterly_trend_chart(self) -> go.Figure:
-        """
-        Create a line chart showing quarterly revenue trends.
-        
-        Returns:
-            go.Figure: Plotly line chart figure
-        """
-        quarterly = self.df.groupby(['Year', 'Quarter']).agg({
-            'Revenue': 'sum',
-            'Cost': 'sum'
-        }).reset_index()
-        quarterly['Period'] = quarterly['Year'].astype(str) + ' ' + quarterly['Quarter']
-        
+        regional["Margin_Pct"] = regional["Gross_Margin"] / regional["Revenue"] * 100
+
         fig = go.Figure()
-        
-        fig.add_trace(go.Scatter(
-            x=quarterly['Period'],
-            y=quarterly['Revenue'],
-            mode='lines+markers',
-            name='Revenue',
-            line=dict(color='#2E86AB', width=3),
-            marker=dict(size=8)
-        ))
-        
-        fig.add_trace(go.Scatter(
-            x=quarterly['Period'],
-            y=quarterly['Cost'],
-            mode='lines+markers',
-            name='Cost',
-            line=dict(color='#A23B72', width=3),
-            marker=dict(size=8)
-        ))
-        
+        fig.add_trace(go.Bar(x=regional["Region"], y=regional["Revenue"], name="Revenue"))
+        fig.add_trace(go.Bar(x=regional["Region"], y=regional["Cost"], name="Cost"))
         fig.update_layout(
-            title='Quarterly Revenue and Cost Trends',
-            xaxis_title='Period',
-            yaxis_title='Amount ($)',
-            hovermode='x unified',
-            template='plotly_white',
+            title="Revenue and Cost by Region",
+            xaxis_title="Region",
+            yaxis_title="Amount ($)",
+            barmode="group",
+            template="plotly_white",
             height=450,
-            legend=dict(x=0, y=1.1, orientation='h')
         )
-        
-        self.figures['quarterly_trend'] = fig
-        logger.info("Created quarterly trend chart")
-        
+        self.figures["regional_performance"] = fig
         return fig
-    
+
+    def create_quarterly_trend_chart(self) -> go.Figure:
+        data = self.df.copy()
+        data["Date"] = pd.to_datetime(data["Date"], errors="coerce")
+        quarterly = (
+            data.dropna(subset=["Date"])
+            .assign(Period=lambda x: x["Date"].dt.to_period("Q").astype(str))
+            .groupby("Period")[["Revenue", "Cost"]]
+            .sum()
+            .reset_index()
+        )
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=quarterly["Period"], y=quarterly["Revenue"],
+                                 mode="lines+markers", name="Revenue"))
+        fig.add_trace(go.Scatter(x=quarterly["Period"], y=quarterly["Cost"],
+                                 mode="lines+markers", name="Cost"))
+        fig.update_layout(
+            title="Quarterly Revenue and Cost",
+            xaxis_title="Quarter",
+            yaxis_title="Amount ($)",
+            hovermode="x unified",
+            template="plotly_white",
+            height=450,
+        )
+        self.figures["quarterly_trend"] = fig
+        return fig
+
     def create_status_breakdown_pie(self) -> go.Figure:
-        """
-        Create a pie chart showing Above/Below Target breakdown.
-        
-        Returns:
-            go.Figure: Plotly pie chart figure
-        """
-        status_counts = self.df['Status'].value_counts().reset_index()
-        status_counts.columns = ['Status', 'Count']
-        
-        fig = px.pie(
-            status_counts,
-            values='Count',
-            names='Status',
-            title='Records Status Distribution',
-            color='Status',
-            color_discrete_map={
-                'Above Target': '#2ECC71',
-                'Below Target': '#E74C3C'
-            }
-        )
-        
-        fig.update_traces(textposition='inside', textinfo='percent+label')
-        fig.update_layout(
-            height=450,
-            template='plotly_white'
-        )
-        
-        self.figures['status_breakdown'] = fig
-        logger.info("Created status breakdown pie chart")
-        
+        status = self.df["Status"].value_counts().rename_axis("Status").reset_index(name="Count")
+        fig = px.pie(status, values="Count", names="Status",
+                     title="Source Dataset Status Distribution")
+        fig.update_layout(height=450, template="plotly_white")
+        self.figures["status_breakdown"] = fig
         return fig
-    
-    def save_all_figures(self, prefix: str = 'kpi_report') -> List[str]:
-        """
-        Save all generated figures as HTML files.
-        
-        Args:
-            prefix: Prefix for saved file names
-            
-        Returns:
-            List[str]: List of saved file paths
-        """
+
+    def create_exception_priority_chart(self, exceptions: pd.DataFrame) -> go.Figure:
+        if exceptions.empty:
+            counts = pd.DataFrame({"Priority": ["No Exceptions"], "Count": [0]})
+        else:
+            counts = exceptions["Priority"].value_counts().reindex(
+                ["High", "Medium", "Low"], fill_value=0
+            ).rename_axis("Priority").reset_index(name="Count")
+        fig = px.bar(
+            counts, x="Priority", y="Count", title="Management Exceptions by Priority",
+            text="Count"
+        )
+        fig.update_layout(template="plotly_white", height=350)
+        self.figures["exception_priority"] = fig
+        return fig
+
+    def save_all_figures(self, prefix: str = "kpi_report") -> List[str]:
         saved_files = []
-        
         for name, fig in self.figures.items():
-            file_path = self.output_dir / f"{prefix}_{name}.html"
-            fig.write_html(str(file_path))
-            saved_files.append(str(file_path))
-            logger.info(f"Saved figure: {file_path}")
-        
+            path = self.output_dir / f"{prefix}_{name}.html"
+            fig.write_html(str(path))
+            saved_files.append(str(path))
         return saved_files
-    
+
     def generate_json_metrics(self, summary_data: Dict) -> str:
-        """
-        Generate a JSON file with key metrics and metadata.
-        
-        Args:
-            summary_data: Dictionary containing executive summary data
-            
-        Returns:
-            str: Path to the saved JSON file
-        """
-        # Ensure author metadata is included
-        summary_data['author'] = self.AUTHOR
-        summary_data['report_generated_at'] = pd.Timestamp.now().isoformat()
-        
-        file_path = self.output_dir / 'executive_metrics.json'
-        
-        with open(file_path, 'w') as f:
-            json.dump(summary_data, f, indent=2, default=str)
-        
-        logger.info(f"Saved metrics JSON: {file_path}")
-        
-        return str(file_path)
-    
+        payload = dict(summary_data)
+        payload["author"] = self.AUTHOR
+        payload["report_generated_at"] = pd.Timestamp.now().isoformat()
+        path = self.output_dir / "executive_metrics.json"
+        with path.open("w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2, default=str)
+        return str(path)
+
     def create_executive_dashboard_data(self) -> Dict:
-        """
-        Prepare data structures for the executive dashboard.
-        
-        Returns:
-            Dict: Dashboard data package
-        """
         return {
-            'author': self.AUTHOR,
-            'total_records': len(self.df),
-            'total_revenue': self.df['Revenue'].sum(),
-            'total_cost': self.df['Cost'].sum(),
-            'departments': list(self.df['Department'].unique()),
-            'regions': list(self.df['Region'].unique()),
-            'figures_available': list(self.figures.keys())
+            "author": self.AUTHOR,
+            "total_records": int(len(self.df)),
+            "total_revenue": float(self.df["Revenue"].sum()),
+            "total_cost": float(self.df["Cost"].sum()),
+            "departments": sorted(self.df["Department"].dropna().unique().tolist()),
+            "regions": sorted(self.df["Region"].dropna().unique().tolist()),
+            "figures_available": list(self.figures.keys()),
         }
