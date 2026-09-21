@@ -93,7 +93,7 @@ class DataLoader:
 
         if "SLA_Met" in df.columns:
             validity_issues["invalid_sla_flag"] = int(
-                ~df["SLA_Met"].isin([0, 1]).sum()
+                (~df["SLA_Met"].isin([0, 1])).sum()
             )
 
         validity_issue_count = sum(validity_issues.values())
