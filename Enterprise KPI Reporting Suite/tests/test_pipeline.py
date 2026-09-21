@@ -1,4 +1,9 @@
-import sys\nfrom pathlib import Path\n\nsys.path.insert(0, str(Path(__file__).resolve().parents[1]))\n\n"""Tests for the Enterprise KPI Reporting Suite analytical pipeline."""
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+"""Tests for the Enterprise KPI Reporting Suite analytical pipeline."""
 
 import numpy as np
 import pandas as pd
