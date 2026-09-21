@@ -63,6 +63,7 @@ class AttritionModel:
         self.y_test: pd.Series | None = None
         self.X_test_transformed = None
         self.shap_values = None
+        self.shap_test_indices: np.ndarray | None = None
 
     def _get_features(self, df: pd.DataFrame) -> Tuple[List[str], List[str]]:
         numeric = [
@@ -236,7 +237,9 @@ class AttritionModel:
                 "Install dependencies from requirements.txt."
             ) from exc
 
-        X_shap = self.X_test_transformed[:max_samples]
+        sample_count = min(max_samples, len(self.X_test_transformed))
+        X_shap = self.X_test_transformed[:sample_count]
+        self.shap_test_indices = np.arange(sample_count)
         explainer = shap.TreeExplainer(self.model.named_steps["model"])
         raw_values = explainer.shap_values(X_shap)
 
@@ -267,12 +270,18 @@ class AttritionModel:
         if self.shap_values is None:
             self.calculate_shap_values()
 
-        if self.X_test_raw is None or self.y_test is None:
+        if self.X_test_raw is None or self.y_test is None or self.shap_test_indices is None:
             raise ValueError("Test data is not available")
         if sample_idx < 0 or sample_idx >= len(self.X_test_raw):
             raise IndexError("sample_idx is outside the held-out test set")
 
-        row_values = self.shap_values[sample_idx]
+        matches = np.where(self.shap_test_indices == sample_idx)[0]
+        if len(matches) == 0:
+            raise IndexError(
+                "sample_idx was not included in the calculated SHAP subset; "
+                "recalculate SHAP with a larger max_samples value."
+            )
+        row_values = self.shap_values[matches[0]]
         grouped: Dict[str, float] = {}
         for name, value in zip(self.transformed_feature_names, row_values):
             source = self._source_feature(name)
