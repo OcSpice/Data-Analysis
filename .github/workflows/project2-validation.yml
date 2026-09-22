@@ -1,4 +1,5 @@
 name: Project 2 validation
+
 on:
   push:
     paths:
@@ -8,16 +9,17 @@ on:
     paths:
       - 'Supply Chain and Logistics Performance Tracker/**'
       - '.github/workflows/project2-validation.yml'
-  jobs:
-    test:
-      runs-on: ubuntu-latest
-      defaults:
-        run:
-          working-directory: Supply Chain and Logistics Performance Tracker
-      steps:
-        - uses: actions/checkout@v4
-        - uses: actions/setup-python@v5
-          with:
-            python-version: '3.11'
-        - run: pip install -r requirements.txt
-        - run: pytest -q
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Supply Chain and Logistics Performance Tracker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: pytest -q
