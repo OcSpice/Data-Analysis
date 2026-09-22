@@ -1,0 +1,25 @@
+name: Supply Chain & Logistics Validation
+
+on:
+  push:
+    paths:
+      - 'Supply Chain and Logistics Performance Tracker/**'
+      - '.github/workflows/supply-chain-validation.yml'
+  pull_request:
+    paths:
+      - 'Supply Chain and Logistics Performance Tracker/**'
+      - '.github/workflows/project2-validation.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Supply Chain and Logistics Performance Tracker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - run: pytest -q
