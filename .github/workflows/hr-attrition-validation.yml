@@ -7,7 +7,7 @@ on:
       - ".github/workflows/hr-attrition-validation.yml"
   push:
     branches:
-      - rebuild-hr-attrition
+      - main
     paths:
       - "HR Attrition Analysis and Retention Cost Modeling/**"
       - ".github/workflows/hr-attrition-validation.yml"
