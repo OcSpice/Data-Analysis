@@ -4,7 +4,9 @@ on:
   push:
     branches:
       - main
-      - rebuild-project3-kpi-engine
+    paths:
+      - "Enterprise KPI Reporting Suite/**"
+      - ".github/workflows/enterprise-kpi-validation.yml"
   pull_request:
     paths:
       - "Enterprise KPI Reporting Suite/**"
